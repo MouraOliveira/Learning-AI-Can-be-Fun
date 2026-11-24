@@ -99,6 +99,8 @@
     if (save) { try { sessionStorage.setItem('liacbf-nav-min', min ? '1' : '0'); } catch (e) {} }
   }
   tog.addEventListener('click', function () { setMin(!bar.classList.contains('min'), true); });
+  /* keystrokes on the nav must not trigger a lab's own keyboard shortcuts (Space, S, R, arrows...) */
+  sh.addEventListener('keydown', function (e) { e.stopPropagation(); });
   try { if (sessionStorage.getItem('liacbf-nav-min') === '1') setMin(true, false); } catch (e) {}
 
   function mount() { document.body.appendChild(host); }

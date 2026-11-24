@@ -11,7 +11,7 @@
  *   file        path to the lab page, relative to index.html (labs/<name>.html)
  *   level       'Introductory' | 'Intermediate' | 'Advanced'
  *   topic       one broad topic, used by the Topic filter (e.g. 'Neural networks')
- *   preview     thumbnail style: neuron | gates | regions | backprop | clusters | swarm
+ *   preview     thumbnail style: neuron | gates | regions | backprop | clusters | anneal | genetic | swarm
  *               (anything else shows a neutral placeholder; see assets/app.js)
  *   tags        2 to 3 short phrases
  *   summary     one or two sentences
@@ -92,6 +92,36 @@ window.LABS = [
       'Predict where a centroid moves in the Move step and explain why.',
       'Show that the starting centroids change the result, and keep the run with the lowest inertia.',
       'Choose k from the inertia-versus-k curve and name the data shapes where k-means fails.'
+    ]
+  },
+  {
+    id: 'simulated-annealing',
+    title: 'Simulated Annealing Lab',
+    file: 'labs/simulated-annealing-lab.html',
+    level: 'Introductory',
+    topic: 'Optimization',
+    preview: 'anneal',
+    tags: ['Local search', 'Cooling schedule', 'Travelling salesperson'],
+    summary: 'Send a walker across a bumpy landscape and watch it sometimes accept a worse move, with a chance set by the temperature. Compare it with hill climbing, change the cooling schedule and shorten a travelling salesperson tour.',
+    objectives: [
+      'Explain why hill climbing gets stuck in a local minimum, and compute the chance of accepting a worse move.',
+      'Predict how the temperature and the cooling schedule turn the search from a random walk into hill climbing.',
+      'Judge a randomised algorithm from many trials, on a landscape and on a travelling salesperson tour.'
+    ]
+  },
+  {
+    id: 'genetic-algorithm',
+    title: 'Genetic Algorithm Lab',
+    file: 'labs/genetic-algorithm-lab.html',
+    level: 'Introductory',
+    topic: 'Optimization',
+    preview: 'genetic',
+    tags: ['Evolutionary computation', 'Selection and crossover', 'Mutation'],
+    summary: 'Encode solutions as bit strings, then try selection, crossover and mutation one at a time before running a complete genetic algorithm and watching the best and average fitness climb.',
+    objectives: [
+      'Decode a bit-string chromosome and compute its fitness.',
+      'Compare roulette-wheel and tournament selection, and one-point, two-point and uniform crossover.',
+      'Explain what mutation, elitism and population size do in a full run of the algorithm.'
     ]
   },
   {

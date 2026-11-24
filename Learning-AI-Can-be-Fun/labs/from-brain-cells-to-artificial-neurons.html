@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>From Brain Cells to Artificial Neurons</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#1b2236;--mut:#586178;--line:#d9deea;--pos:#2563eb;--neg:#dc2f4b;--c-in:#2563eb;--c-w:#e8830c;--c-sum:#7c4ddb;--c-act:#d6338a;--c-out:#0f9d76;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1424;--card:#181f35;--ink:#e8ecf8;--mut:#9aa4c0;--line:#2b3556;--pos:#5b92ff;--neg:#ff6b82;--c-in:#5b92ff;--c-w:#ffa43a;--c-sum:#a487ff;--c-act:#ff62b0;--c-out:#2ed3a6;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1424;--card:#181f35;--ink:#e8ecf8;--mut:#9aa4c0;--line:#2b3556;--pos:#5b92ff;--neg:#ff6b82;--c-in:#5b92ff;--c-w:#ffa43a;--c-sum:#a487ff;--c-act:#ff62b0;--c-out:#2ed3a6;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Georgia,"Iowan Old Style",serif}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 18px 60px}
+h1{font:800 clamp(28px,5vw,44px)/1.1 "Trebuchet MS",system-ui,sans-serif;margin:0 0 10px;letter-spacing:-.02em}
+h2{font:700 24px/1.2 "Trebuchet MS",system-ui,sans-serif;margin:44px 0 6px}
+h3{font:700 16px "Trebuchet MS",system-ui,sans-serif;margin:0 0 6px}
+.lead{color:var(--mut);max-width:62ch;margin:0 0 6px}
+.sub{color:var(--mut);margin:0 0 16px;max-width:66ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+svg{width:100%;height:auto;display:block}
+svg text{font:600 13px "Trebuchet MS",system-ui,sans-serif;fill:var(--ink);text-anchor:middle}
+svg .val{font-size:12px;font-weight:700}svg .cap{font-size:12px}svg .big{font-size:22px}
+[data-k=in]{--k:var(--c-in)}[data-k=w]{--k:var(--c-w)}[data-k=sum]{--k:var(--c-sum)}[data-k=act]{--k:var(--c-act)}[data-k=out]{--k:var(--c-out)}
+svg [data-k]{transition:opacity .25s,filter .25s}
+svg .dim{opacity:.18}svg .glow{filter:drop-shadow(0 0 6px var(--k))}
+.chips{display:grid;gap:8px;margin-top:16px}
+.chip{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center;padding:10px 14px;border:2px solid var(--line);border-left:6px solid var(--k);border-radius:12px;background:var(--card);cursor:pointer;font:600 15px "Trebuchet MS",system-ui,sans-serif}
+.chip.sel{border-color:var(--k);background:color-mix(in srgb,var(--k) 10%,var(--card))}
+.chip small{grid-column:1/-1;font:400 14px Georgia,serif;color:var(--mut)}
+.chip .r{text-align:right}
+.hint{font-size:14px;color:var(--mut);margin-top:8px}
+.flow{animation:dash 1s linear infinite}@keyframes dash{to{stroke-dashoffset:-14}}
+@media (prefers-reduced-motion:reduce){.flow{animation:none}svg animate,svg animateMotion{display:none}}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin-bottom:6px}
+@media(max-width:560px){.row{grid-template-columns:1fr}}
+.g{display:grid;grid-template-columns:2em 1fr 3.4em;gap:8px;align-items:center}
+.g b{font:700 14px ui-monospace,Menlo,monospace;text-align:right}.tag{font:700 17px "Trebuchet MS",sans-serif}
+input[type=range]{width:100%;accent-color:var(--c-sum);min-width:0}
+button{font:600 14px "Trebuchet MS",system-ui,sans-serif;color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer}
+button:hover{border-color:var(--c-sum)}button.on{background:var(--c-sum);border-color:var(--c-sum);color:#fff}
+button:focus-visible,input:focus-visible,.chip:focus-visible{outline:3px solid var(--c-act);outline-offset:2px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.math{font:14px/1.9 ui-monospace,Menlo,monospace;overflow-x:auto}
+.math span{white-space:nowrap}.t{background:color-mix(in srgb,var(--c-w) 14%,transparent);border-radius:6px;padding:1px 6px}
+.res{font:700 20px "Trebuchet MS",system-ui,sans-serif;margin-top:6px}
+.bar{height:14px;border-radius:99px;background:var(--line);overflow:hidden;margin:8px 0 4px}
+.bar i{display:block;height:100%;background:var(--c-out);width:0;transition:width .25s}
+ul{padding-left:20px;margin:6px 0}li{margin:4px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>How an artificial neuron copies a brain cell</h1>
+<p class="lead">Your brain has about 86 billion neurons. Neural networks borrow the basic idea of one neuron and repeat it many times. Explore the parts, compare them, then experiment.</p>
+
+<h2>1. Compare the two neurons</h2>
+<p class="sub">Hover over, tap, or focus any part (or a row below) to light up its match on the other side. Moving dashes show a signal travelling from left to right.</p>
+<div id="cmp">
+<div class="grid">
+<div class="card"><h3>Biological neuron</h3>
+<svg viewBox="0 0 560 300" role="img" aria-label="Biological neuron with dendrites, cell body, axon hillock, axon and synapses">
+<g data-k="in" fill="none" stroke="var(--c-in)" stroke-width="5" stroke-linecap="round">
+<path d="M254,142C200,130 150,80 78,60"/><path d="M168,104 150,68"/><path d="M254,150H78"/><path d="M254,158C200,170 150,220 78,240"/><path d="M165,200 140,232"/><path d="M200,150 150,128" stroke-width="3"/></g>
+<g data-k="w"><g stroke="var(--mut)" stroke-width="3" opacity=".6"><path d="M0,60H34"/><path d="M0,150H34"/><path d="M0,240H34"/></g>
+<g fill="var(--c-w)"><circle cx="44" cy="60" r="12"/><circle cx="44" cy="150" r="12"/><circle cx="44" cy="240" r="12"/>
+<circle r="3" cy="60"><animate attributeName="cx" values="56;72" dur="1.2s" repeatCount="indefinite"/></circle>
+<circle r="3" cy="150"><animate attributeName="cx" values="56;72" dur="1.2s" begin=".4s" repeatCount="indefinite"/></circle>
+<circle r="3" cy="240"><animate attributeName="cx" values="56;72" dur="1.2s" begin=".8s" repeatCount="indefinite"/></circle></g></g>
+<g data-k="sum"><circle cx="300" cy="150" r="46" fill="var(--c-sum)" fill-fill-opacity=".2" fill-opacity=".2" stroke="var(--c-sum)" stroke-width="3"/><circle cx="296" cy="146" r="16" fill="var(--c-sum)" opacity=".55"/></g>
+<g data-k="act"><path d="M340,126 378,144V156L340,174Z" fill="var(--c-act)" fill-opacity=".35" stroke="var(--c-act)" stroke-width="3"/><text x="372" y="108" class="cap">Axon hillock</text><text x="372" y="123" class="cap" style="font-weight:400">(fires past a threshold)</text></g>
+<g data-k="out"><path d="M378,150H500" stroke="var(--c-out)" stroke-width="6"/><g fill="var(--c-out)" fill-opacity=".35" stroke="var(--c-out)" stroke-width="2"><rect x="392" y="138" width="28" height="24" rx="10"/><rect x="430" y="138" width="28" height="24" rx="10"/><rect x="468" y="138" width="24" height="24" rx="10"/></g>
+<g stroke="var(--c-out)" stroke-width="4" fill="none" stroke-linecap="round"><path d="M500,150 530,118"/><path d="M500,150H536"/><path d="M500,150 530,182"/></g><g fill="var(--c-out)"><circle cx="533" cy="115" r="7"/><circle cx="541" cy="150" r="7"/><circle cx="533" cy="185" r="7"/></g><text x="500" y="214" class="cap">Axon terminals</text></g>
+<circle r="6" fill="var(--c-act)"><animateMotion dur="3.6s" repeatCount="indefinite" path="M78,60C150,80 200,130 254,142L376,150H538"/></circle>
+<g class="cap"><text x="44" y="292" fill="var(--c-w)" style="fill:var(--c-w)">Synapses</text><text x="165" y="292" style="fill:var(--c-in)">Dendrites</text><text x="300" y="292" style="fill:var(--c-sum)">Cell body</text><text x="440" y="292" style="fill:var(--c-out)">Axon</text></g>
+</svg></div>
+<div class="card"><h3>Artificial neuron (live)</h3><svg id="n1" viewBox="0 0 560 300" role="img" aria-label="Artificial neuron diagram"></svg></div>
+</div>
+<div class="chips" id="chips"></div>
+</div>
+
+<h2>2. Pick an activation function</h2>
+<p class="sub">The activation function turns the neuron’s total into its final answer. Different shapes give different behaviour.</p>
+<div class="grid">
+<div class="card"><div class="btns" id="fbtns" role="group" aria-label="Activation function"></div>
+<h3 id="fname"></h3><p id="fdesc" style="margin:0 0 6px"></p><div class="math" id="feq"></div></div>
+<div class="card"><svg id="graph" viewBox="0 0 340 230" role="img" aria-label="Activation function graph"></svg><p class="hint">The dot shows where your neuron’s current total (z) lands on the curve.</p></div>
+</div>
+
+<h2>3. Experiment with a neuron</h2>
+<p class="sub">Drag the sliders. Thick lines mean strong weights; blue lines are positive and red lines are negative.</p>
+<div class="grid">
+<div class="card"><svg id="n2" viewBox="0 0 560 300" role="img" aria-label="Interactive artificial neuron"></svg>
+<div class="res" id="res"></div><div class="bar"><i id="bar"></i></div><div class="hint" id="mood"></div></div>
+<div class="card"><h3>Inputs and weights</h3><div id="ctl"></div>
+<h3 style="margin-top:12px">Bias</h3><div class="g"><span class="tag" style="color:var(--c-sum)">b</span><input type="range" id="b" min="-2" max="2" step="0.1" aria-label="Bias"><b id="bv"></b></div>
+<div class="btns"><button id="rnd">Randomize</button><button id="rst">Reset</button></div>
+<h3 style="margin-top:12px">The calculation</h3><div class="math" id="math"></div>
+<h3 style="margin-top:12px">Try this</h3>
+<ul><li>Set every weight to 0. What does the output depend on now?</li><li>Raise the bias with the Step function. Watch it flip from silent to firing.</li><li>Make one weight negative. Does that input now hold the neuron back?</li></ul></div>
+</div>
+</div>
+<script>
+const F={
+sigmoid:{n:'Sigmoid',f:z=>1/(1+Math.exp(-z)),yr:[-.2,1.2],eq:'f(z) = 1 / (1 + e⁻ᶻ)',d:'Squashes any number into a smooth 0 to 1 range. Handy when the answer means “how likely?”.'},
+relu:{n:'ReLU',f:z=>Math.max(0,z),yr:[-.6,5.2],eq:'f(z) = max(0, z)',d:'Stays silent for negative totals and passes positive ones straight through. Simple, fast and very common.'},
+tanh:{n:'Tanh',f:Math.tanh,yr:[-1.3,1.3],eq:'f(z) = (eᶻ − e⁻ᶻ) / (eᶻ + e⁻ᶻ)',d:'Like sigmoid, but ranges from −1 to 1, so it can answer with a negative as well as a positive.'},
+step:{n:'Step',f:z=>z>=0?1:0,yr:[-.2,1.2],eq:'f(z) = 1 if z ≥ 0, else 0',d:'All or nothing, like a real neuron firing. It is easy to understand but not smooth.'}};
+const D={x:[.8,.5,-.3],w:[.7,-.4,.9],b:.1};
+const S={x:[...D.x],w:[...D.w],b:D.b,f:'sigmoid'};
+const $=s=>document.querySelector(s),sub=['₁','₂','₃'];
+const fmt=v=>{const r=Math.round(v*100)/100;return(Object.is(r,-0)?0:r).toFixed(2)};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let hl=null;
+const maps=[['in','Dendrites','Inputs','Both receive the incoming signals from other neurons.'],['w','Synapses','Weights','The connection strength sets how much each signal counts. It can excite (+) or inhibit (−).'],['sum','Cell body','Weighted sum + bias','Everything arriving is added up. The bias makes firing easier or harder.'],['act','Axon hillock','Activation function','Decides whether, and how strongly, the neuron fires.'],['out','Axon','Output','Carries the result on to the next neurons.']];
+$('#chips').innerHTML=maps.map(m=>`<div class="chip" data-k="${m[0]}" tabindex="0" role="button" aria-label="${m[1]} matches ${m[2]}"><span>${m[1]}</span><span aria-hidden="true">⇄</span><span class="r">${m[2]}</span><small>${m[3]}</small></div>`).join('');
+function applyHl(){document.querySelectorAll('#cmp svg [data-k]').forEach(e=>{e.classList.toggle('dim',!!hl&&e.dataset.k!==hl);e.classList.toggle('glow',!!hl&&e.dataset.k===hl)});document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('sel',c.dataset.k===hl))}
+const cmp=$('#cmp');
+cmp.addEventListener('mouseover',e=>{const t=e.target.closest('[data-k]');hl=t?t.dataset.k:null;applyHl()});
+cmp.addEventListener('mouseleave',()=>{hl=null;applyHl()});
+cmp.addEventListener('focusin',e=>{const t=e.target.closest('[data-k]');if(t){hl=t.dataset.k;applyHl()}});
+cmp.addEventListener('click',e=>{const t=e.target.closest('[data-k]');hl=t&&hl!==t.dataset.k?t.dataset.k:null;applyHl()});
+
+function calc(){const t=S.x.map((x,i)=>x*S.w[i]);const z=t.reduce((a,c)=>a+c,0)+S.b;const a=F[S.f].f(z);const[y0,y1]=F[S.f].yr;const n=S.f==='tanh'?(a+1)/2:S.f==='relu'?clamp(a/5,0,1):a;return{t,z,a,n}}
+function neuron(c){const ys=[60,150,240];let s='';
+ys.forEach((y,i)=>{const w=S.w[i],col=w>=0?'var(--pos)':'var(--neg)',lx=78+176*.42,ly=y+(150-y)*.42;
+s+=`<g data-k="w"><line class="flow" x1="78" y1="${y}" x2="254" y2="150" stroke="${col}" stroke-width="${1+Math.abs(w)*3}" stroke-dasharray="7 7" stroke-linecap="round" opacity="${.3+Math.min(1,Math.abs(c.t[i]))*.7}"/><rect x="${lx-23}" y="${ly-11}" width="46" height="22" rx="11" fill="var(--card)" stroke="var(--c-w)" stroke-width="2"/><text x="${lx}" y="${ly+4}" class="val">×${fmt(w)}</text></g>`;
+s+=`<g data-k="in"><circle cx="50" cy="${y}" r="27" fill="var(--c-in)" fill-opacity="${.1+Math.abs(S.x[i])*.5}" stroke="var(--c-in)" stroke-width="3"/><text x="50" y="${y-3}" class="cap">x${sub[i]}</text><text x="50" y="${y+13}" class="val">${fmt(S.x[i])}</text></g>`});
+s+=`<g data-k="sum"><line x1="300" y1="66" x2="300" y2="104" stroke="var(--c-sum)" stroke-width="3"/><circle cx="300" cy="46" r="21" fill="var(--card)" stroke="var(--c-sum)" stroke-width="3"/><text x="300" y="44" class="cap">b</text><text x="300" y="58" class="val">${fmt(S.b)}</text>
+<circle cx="300" cy="150" r="46" fill="var(--c-sum)" fill-opacity=".18" stroke="var(--c-sum)" stroke-width="3"/><text x="300" y="150" class="big">Σ + b</text><text x="300" y="172" class="val">z = ${fmt(c.z)}</text></g>`;
+const [y0,y1]=F[S.f].yr,mx=z=>384+(z+5)/10*52,my=v=>166-(v-y0)/(y1-y0)*34;
+let pts='';for(let z=-5;z<=5.01;z+=.5)pts+=`${mx(z).toFixed(1)},${my(F[S.f].f(z)).toFixed(1)} `;
+s+=`<g data-k="act"><path d="M346,150H370" stroke="var(--c-act)" stroke-width="3"/><rect x="372" y="116" width="76" height="68" rx="12" fill="var(--card)" stroke="var(--c-act)" stroke-width="3"/><text x="410" y="132" class="cap">${F[S.f].n}</text><polyline points="${pts}" fill="none" stroke="var(--c-act)" stroke-width="2"/><circle cx="${mx(clamp(c.z,-5,5))}" cy="${my(c.a)}" r="4" fill="var(--c-act)"/></g>`;
+s+=`<g data-k="out"><path d="M448,150H478" stroke="var(--c-out)" stroke-width="3"/><circle cx="512" cy="150" r="32" fill="var(--c-out)" fill-opacity="${.1+c.n*.8}" stroke="var(--c-out)" stroke-width="3"/><text x="512" y="146" class="cap">y</text><text x="512" y="163" class="val">${fmt(c.a)}</text></g>`;
+s+=`<g class="cap"><text x="50" y="292" style="fill:var(--c-in)">Inputs</text><text x="165" y="292" style="fill:var(--c-w)">Weights</text><text x="300" y="292" style="fill:var(--c-sum)">Sum + bias</text><text x="410" y="292" style="fill:var(--c-act)">Activation</text><text x="512" y="292" style="fill:var(--c-out)">Output</text></g>`;
+return s}
+function graph(c){const[y0,y1]=F[S.f].yr,px=z=>30+(z+5)/10*290,py=v=>200-(v-y0)/(y1-y0)*180;
+let p='';for(let z=-5;z<=5.001;z+=.05)p+=(p?'L':'M')+px(z).toFixed(1)+','+py(F[S.f].f(z)).toFixed(1);
+const zc=clamp(c.z,-5,5),ac=F[S.f].f(zc),ax=py(0);
+let t='';for(let z=-4;z<=4;z+=2)t+=`<text x="${px(z)}" y="${Math.min(ax+16,222)}" class="cap" style="fill:var(--mut)">${z}</text>`;
+return `<line x1="30" y1="${ax}" x2="322" y2="${ax}" stroke="var(--mut)"/><line x1="${px(0)}" y1="14" x2="${px(0)}" y2="212" stroke="var(--mut)"/>${t}<path d="${p}" fill="none" stroke="var(--c-act)" stroke-width="3.5"/><line x1="${px(zc)}" y1="${py(ac)}" x2="${px(zc)}" y2="${ax}" stroke="var(--c-sum)" stroke-dasharray="4 4"/><line x1="${px(zc)}" y1="${py(ac)}" x2="${px(0)}" y2="${py(ac)}" stroke="var(--c-out)" stroke-dasharray="4 4"/><circle cx="${px(zc)}" cy="${py(ac)}" r="8" fill="var(--c-sum)" stroke="var(--card)" stroke-width="3"/><text x="326" y="${ax-6}" class="cap" style="text-anchor:end;fill:var(--mut)">z</text><text x="${px(0)+6}" y="24" class="cap" style="text-anchor:start;fill:var(--mut)">f(z)</text>`}
+function render(){const c=calc();
+$('#n1').innerHTML=neuron(c);$('#n2').innerHTML=neuron(c);applyHl();$('#graph').innerHTML=graph(c);
+const f=F[S.f];$('#fname').textContent=f.n;$('#fdesc').textContent=f.d;$('#feq').textContent=f.eq;
+document.querySelectorAll('#fbtns button').forEach(b=>b.classList.toggle('on',b.dataset.f===S.f));
+$('#math').innerHTML=`<span>z = </span>`+c.t.map((t,i)=>`<span class="t">${fmt(S.x[i])}×${fmt(S.w[i])}</span> + `).join('')+`<span class="t">b ${fmt(S.b)}</span><br><span>z = ${fmt(c.z)}</span> → <span>y = ${f.n}(${fmt(c.z)}) = <b>${fmt(c.a)}</b></span>`;
+$('#res').textContent=`Output y = ${fmt(c.a)}`;$('#bar').style.width=(c.n*100)+'%';
+$('#mood').textContent=c.n>.7?'The neuron is firing strongly.':c.n>.4?'The neuron is moderately active.':c.n>.15?'The neuron is only weakly active.':'The neuron is mostly silent.';
+S.x.forEach((v,i)=>{$('#xv'+i).textContent=fmt(v);$('#wv'+i).textContent=fmt(S.w[i])});$('#bv').textContent=fmt(S.b)}
+$('#ctl').innerHTML=[0,1,2].map(i=>`<div class="row"><div class="g"><span class="tag" style="color:var(--c-in)">x${sub[i]}</span><input type="range" id="x${i}" min="-1" max="1" step="0.1" aria-label="Input ${i+1}"><b id="xv${i}"></b></div><div class="g"><span class="tag" style="color:var(--c-w)">w${sub[i]}</span><input type="range" id="w${i}" min="-2" max="2" step="0.1" aria-label="Weight ${i+1}"><b id="wv${i}"></b></div></div>`).join('');
+$('#fbtns').innerHTML=Object.keys(F).map(k=>`<button data-f="${k}">${F[k].n}</button>`).join('');
+function sync(){S.x.forEach((v,i)=>{$('#x'+i).value=v;$('#w'+i).value=S.w[i]});$('#b').value=S.b}
+document.addEventListener('input',e=>{const id=e.target.id,v=parseFloat(e.target.value);if(!id)return;if(id==='b')S.b=v;else if(/^x\d$/.test(id))S.x[+id[1]]=v;else if(/^w\d$/.test(id))S.w[+id[1]]=v;else return;render()});
+$('#fbtns').addEventListener('click',e=>{if(e.target.dataset.f){S.f=e.target.dataset.f;render()}});
+chips=document.querySelectorAll('.chip');chips.forEach(c=>c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();hl=hl===c.dataset.k?null:c.dataset.k;applyHl()}}));
+$('#rst').onclick=()=>{S.x=[...D.x];S.w=[...D.w];S.b=D.b;sync();render()};
+$('#rnd').onclick=()=>{const r=(a,b)=>Math.round((a+Math.random()*(b-a))*10)/10;S.x=[0,1,2].map(()=>r(-1,1));S.w=[0,1,2].map(()=>r(-2,2));S.b=r(-2,2);sync();render()};
+sync();render();
+</script>
+<script src="../assets/labs.js"></script>
+<script src="../assets/lab-nav.js"></script>
+</body>
+</html>

@@ -122,6 +122,54 @@
     return svg(s);
   };
 
+  PV.anneal = function () {
+    // a landscape with a shallow valley on the left and a deeper one on the right; the walker crosses the ridge
+    var cost = function (x) { return 0.9 - 0.45 * Math.exp(-Math.pow((x - 56) / 24, 2)) - 0.8 * Math.exp(-Math.pow((x - 180) / 26, 2)); };
+    var Y = function (x) { return 108 - cost(x) * 92; };
+    var d = '', x, s = '';
+    for (x = -2; x <= 242; x += 4) d += (x < 0 ? 'M' : 'L') + x + ' ' + Y(x).toFixed(1);
+    s += '<path d="' + d + 'L242 122L-2 122Z" fill="var(--a)" fill-opacity=".13"/>';
+    s += '<path d="' + d + '" fill="none" stroke="var(--a)" stroke-width="2.8" stroke-linejoin="round"/>';
+    // the walker's trail, then what happened at each step
+    var trail = [16, 34, 56, 76, 96, 116, 138, 160, 180], tr = '';
+    trail.forEach(function (t, i) { tr += (i ? 'L' : 'M') + t + ' ' + (Y(t) - 9).toFixed(1); });
+    s += '<path d="' + tr + '" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-dasharray="2 4" stroke-linecap="round" opacity=".55"/>';
+    [16, 34, 56, 160].forEach(function (t) { s += circle(t, (Y(t) - 9).toFixed(1), 4.6, 'var(--c)', 'var(--card)', 1.8); });
+    [76, 96, 116].forEach(function (t) {
+      var y = Y(t) - 9;
+      s += '<path d="M' + t + ' ' + (y - 6.5).toFixed(1) + 'L' + (t + 6) + ' ' + (y + 4.5).toFixed(1) + 'L' + (t - 6) + ' ' + (y + 4.5).toFixed(1) + 'Z" fill="var(--b)" stroke="var(--card)" stroke-width="1.6" stroke-linejoin="round"/>';
+    });
+    var rx = 138, ry = Y(rx) - 9;
+    s += '<path d="M' + (rx - 4) + ' ' + (ry - 4).toFixed(1) + 'L' + (rx + 4) + ' ' + (ry + 4).toFixed(1) + 'M' + (rx + 4) + ' ' + (ry - 4).toFixed(1) + 'L' + (rx - 4) + ' ' + (ry + 4).toFixed(1) + '" stroke="var(--bad)" stroke-width="2.6" stroke-linecap="round"/>';
+    s += circle(180, (Y(180) - 9).toFixed(1), 8, 'var(--c)', 'var(--card)', 2.2);
+    return svg(s);
+  };
+
+  PV.genetic = function () {
+    // two parent bit strings, a crossover cut, and a child with one mutated bit
+    var A = [1, 0, 1, 1, 0, 0, 1, 0], B = [0, 1, 1, 0, 1, 1, 0, 1], cut = 3, mut = 5, W = 20, G = 3, x0 = 29.5, s = '';
+    var child = A.slice(0, cut).concat(B.slice(cut));
+    child[mut] = 1 - child[mut];
+    function row(bits, y, colorOf) {
+      var out = '';
+      bits.forEach(function (b, i) {
+        var col = colorOf(i), px = x0 + i * (W + G);
+        out += '<rect x="' + px + '" y="' + y + '" width="' + W + '" height="' + W + '" rx="4" fill="' + (b ? col : 'var(--card)') + '" stroke="' + col + '" stroke-width="2"/>';
+        out += '<text x="' + (px + W / 2) + '" y="' + (y + 14.5) + '" text-anchor="middle" font-size="12" font-weight="700" fill="' + (b ? 'var(--a-ink)' : 'var(--ink)') + '">' + b + '</text>';
+      });
+      return out;
+    }
+    var cutX = x0 + cut * (W + G) - G / 2;
+    s += row(A, 10, function () { return 'var(--a)'; });
+    s += row(B, 38, function () { return 'var(--b)'; });
+    s += arrow(120, 62, 120, 84, 'var(--ink)', 2);
+    s += row(child, 90, function (i) { return i === mut ? 'var(--d)' : i < cut ? 'var(--a)' : 'var(--b)'; });
+    s += '<line x1="' + cutX + '" y1="4" x2="' + cutX + '" y2="116" stroke="var(--ink)" stroke-width="1.6" stroke-dasharray="4 3" opacity=".6"/>';
+    var mx = x0 + mut * (W + G);
+    s += '<rect x="' + (mx - 3) + '" y="87" width="' + (W + 6) + '" height="' + (W + 6) + '" rx="6" fill="none" stroke="var(--d)" stroke-width="1.6" opacity=".8"/>';
+    return svg(s);
+  };
+
   PV.swarm = function () {
     var cx = 120, cy = 62, s = '';
     [52, 40, 28, 17, 8].forEach(function (r, i) {
