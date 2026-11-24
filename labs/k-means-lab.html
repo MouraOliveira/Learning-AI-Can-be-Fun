@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K-means Lab</title>
+<meta name="description" content="An interactive lab where students step through the k-means algorithm, move centroids, compare random starts and choose k.">
+<meta name="lab-los" content="LO1: Predict where a centroid moves in the Move step and explain why; LO2: Recognise convergence and explain why k-means stops; LO3: Show that the starting centroids change the result and pick the run with the lowest inertia; LO4: Choose k from the inertia-versus-k curve and explain why the lowest inertia is not enough; LO5: Name data shapes where k-means fails and explain why">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: the canvas stays pinned on the left while controls, the inertia chart and the guided tasks scroll on the right. */
+:root {
+  --bg: #eef1f6;
+  --surface: #fbfcfd;
+  --ink: #172033;
+  --ink-2: #47526a;
+  --muted: #667086;
+  --line: #d3dae6;
+  --grid: #e6eaf1;
+  --none: #98a2b5;
+  --accent: #172033;
+  --on-accent: #ffffff;
+  --focus: #1d5fb8;
+  --good: #006300;
+  --bad: #9a3412;
+  --c1: #2a78d6;
+  --c2: #eb6834;
+  --c3: #1baf7a;
+  --c4: #eda100;
+  --c5: #e87ba4;
+  --c6: #6250d6;
+  --region-alpha: 0.10;
+  --font: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f131b;
+    --surface: #171c27;
+    --ink: #e9edf5;
+    --ink-2: #b4bdcc;
+    --muted: #8f99ab;
+    --line: #2b3447;
+    --grid: #222a3a;
+    --none: #7a8499;
+    --accent: #e9edf5;
+    --on-accent: #0f131b;
+    --focus: #6aa8f5;
+    --good: #3fbf3f;
+    --bad: #f0a27a;
+    --c1: #3987e5;
+    --c2: #d95926;
+    --c3: #199e70;
+    --c4: #c98500;
+    --c5: #d55181;
+    --c6: #9085e9;
+    --region-alpha: 0.17;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f131b;
+  --surface: #171c27;
+  --ink: #e9edf5;
+  --ink-2: #b4bdcc;
+  --muted: #8f99ab;
+  --line: #2b3447;
+  --grid: #222a3a;
+  --none: #7a8499;
+  --accent: #e9edf5;
+  --on-accent: #0f131b;
+  --focus: #6aa8f5;
+  --good: #3fbf3f;
+  --bad: #f0a27a;
+  --c1: #3987e5;
+  --c2: #d95926;
+  --c3: #199e70;
+  --c4: #c98500;
+  --c5: #d55181;
+  --c6: #9085e9;
+  --region-alpha: 0.17;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.5 var(--font);
+}
+.wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 64px; }
+
+/* Header */
+.top { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); margin-bottom: 18px; }
+.intro { max-width: 68ch; }
+h1 { font-size: clamp(30px, 4.4vw, 38px); line-height: 1.08; margin: 0 0 8px; letter-spacing: -0.015em; text-wrap: balance; }
+h2 { font-size: 20px; line-height: 1.25; margin: 0 0 10px; text-wrap: balance; }
+h3 { font-size: 16px; line-height: 1.3; margin: 0; }
+.lede { margin: 0; color: var(--ink-2); font-size: 17px; line-height: 1.5; }
+.lede b { color: var(--ink); }
+.aside { display: grid; gap: 8px; align-content: start; }
+.terms { display: grid; gap: 6px; margin: 0; }
+.terms dt { font-weight: 700; display: inline; }
+.terms dt::after { content: ". "; }
+.terms dd { margin: 0; display: inline; color: var(--ink-2); font-size: 15px; }
+.jump { color: var(--ink); font-weight: 700; text-underline-offset: 3px; justify-self: start; }
+
+/* Layout */
+.layout { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 980px) {
+  .top, .layout { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); column-gap: 24px; }
+  .layout { align-items: start; gap: 24px; }
+  .stage { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+}
+.side { display: grid; gap: 20px; min-width: 0; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+}
+.stage { padding: 14px; display: grid; gap: 12px; }
+
+/* Canvas */
+.canvas-box { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+canvas { display: block; width: 100%; aspect-ratio: 5 / 4; touch-action: none; cursor: crosshair; }
+canvas.dragging { cursor: grabbing; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; min-height: 22px; font-size: 14px; color: var(--ink-2); }
+.lg { display: inline-flex; align-items: center; gap: 6px; }
+.lg svg { display: block; }
+.lg .n { color: var(--muted); font-variant-numeric: tabular-nums; }
+.readout { display: grid; grid-template-columns: repeat(3, minmax(0, auto)); justify-content: start; gap: 8px 28px; }
+.stat { display: grid; gap: 0; }
+.stat .k { font-size: 13px; color: var(--muted); }
+.stat b { font-size: 20px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 16px !important; }
+.chip.good { color: var(--good); }
+.msg { margin: 0; min-height: 3em; color: var(--ink); }
+.hint { margin: 0; font-size: 14px; color: var(--muted); }
+
+/* Controls */
+.controls { display: grid; gap: 16px; }
+.field { display: grid; gap: 8px; }
+.lbl, .field > label { font-weight: 700; font-size: 15px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+select, input[type="range"], .btn { font: inherit; }
+select {
+  min-height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--ink); flex: 1 1 160px; min-width: 0;
+}
+input[type="range"] { width: 100%; accent-color: var(--accent); height: 28px; margin: 0; }
+output { font-variant-numeric: tabular-nums; }
+.ticks { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); padding: 0 6px; margin-top: -4px; }
+.btn {
+  min-height: 42px; padding: 0 16px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-weight: 700;
+}
+.btn:hover:not(:disabled) { background: var(--grid); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn.primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.12); }
+.btn.big { min-height: 52px; font-size: 18px; width: 100%; }
+.btn.small { min-height: 36px; padding: 0 12px; font-size: 15px; }
+.checks { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.checks label { display: inline-flex; align-items: center; gap: 8px; min-height: 28px; }
+.checks input { width: 18px; height: 18px; accent-color: var(--accent); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* Charts */
+svg.chart { display: block; width: 100%; height: auto; }
+.chart .gl { stroke: var(--grid); stroke-width: 1; }
+.chart .base { stroke: var(--line); stroke-width: 1.5; }
+.chart .tx { fill: var(--muted); font: 12px var(--font); }
+.chart .tx.mid { text-anchor: middle; }
+.chart .tx.end { text-anchor: end; }
+.chart .ln { fill: none; stroke: var(--ink-2); stroke-width: 2; stroke-linejoin: round; }
+.chart .mk { fill: var(--ink); stroke: var(--surface); stroke-width: 2; }
+.chart .ring { fill: none; stroke: var(--ink); stroke-width: 2; }
+.key { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; color: var(--ink-2); margin: 6px 0 0; }
+.key span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Tasks */
+.tasks { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; counter-reset: task; }
+.task { counter-increment: task; display: grid; gap: 12px; }
+.task h3 { display: flex; align-items: center; gap: 10px; font-size: 18px; }
+.task h3::before {
+  content: counter(task); flex: none; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 15px; background: var(--accent); color: var(--on-accent);
+}
+.goal { margin: 0; color: var(--ink-2); }
+.task ol.how { margin: 0; padding-left: 22px; display: grid; gap: 4px; }
+.task p { margin: 0; }
+.check { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.check .q { font-weight: 700; }
+.opts { display: grid; gap: 8px; }
+.opt {
+  text-align: left; font: inherit; min-height: 44px; padding: 8px 12px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+.opt:hover { background: var(--grid); }
+.opt.is-right { border-color: var(--good); box-shadow: inset 0 0 0 1px var(--good); }
+.opt.is-wrong { border-color: var(--bad); box-shadow: inset 0 0 0 1px var(--bad); }
+.opt.is-right::before { content: "\2713\00a0"; color: var(--good); font-weight: 700; }
+.opt.is-wrong::before { content: "\2715\00a0"; color: var(--bad); font-weight: 700; }
+.fb { margin: 0; min-height: 1.5em; }
+.fb.good { color: var(--good); }
+.fb.bad { color: var(--bad); }
+
+/* Run history */
+.runs { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.runs li { display: grid; grid-template-columns: 96px minmax(0, 1fr) 64px 64px; align-items: center; gap: 10px; font-size: 14px; }
+.runs li.empty { display: block; color: var(--muted); }
+.runs .bar { height: 12px; background: var(--grid); border-radius: 3px; overflow: hidden; }
+.runs .bar i { display: block; height: 100%; background: var(--ink-2); border-radius: 0 4px 4px 0; }
+.runs li.best .bar i { background: var(--good); }
+.runs .val { text-align: right; font-variant-numeric: tabular-nums; }
+.runs .tag { color: var(--good); font-weight: 700; }
+.sum { margin: 0; font-size: 14px; color: var(--ink-2); }
+
+/* Elbow table */
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--muted); font-weight: 400; }
+tr.cur td { font-weight: 700; }
+
+@media (max-width: 520px) {
+  select { flex-basis: 100%; }
+  .runs li { grid-template-columns: 78px minmax(0, 1fr) 54px; }
+  .runs .tag { display: none; }
+  .readout { gap: 8px 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+</style>
+<script id="model">
+/* K-means model: pure functions, no DOM. Data lives in a 100 x 80 grid; one grid square is 10 x 10 units. */
+var KM = (function () {
+  var W = 100, H = 80;
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function gauss(rng) {
+    var u = 0;
+    while (u === 0) u = rng();
+    var v = rng();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+  function cx(v) { return Math.min(W - 2, Math.max(2, v)); }
+  function cy(v) { return Math.min(H - 2, Math.max(2, v)); }
+  function blob(rng, x, y, sd, n, g) {
+    var out = [];
+    for (var i = 0; i < n; i++) out.push({ x: cx(x + gauss(rng) * sd), y: cy(y + gauss(rng) * sd), g: g });
+    return out;
+  }
+
+  var DATASETS = {
+    blobs3: function (rng) {
+      return [].concat(blob(rng, 22, 22, 5.5, 40, 0), blob(rng, 76, 24, 5.5, 40, 1), blob(rng, 50, 60, 5.5, 40, 2));
+    },
+    moons: function (rng) {
+      var out = [], i, t;
+      for (i = 0; i < 60; i++) {
+        t = Math.PI * rng();
+        out.push({ x: cx(33 + 24 * Math.cos(t) + gauss(rng) * 1.8), y: cy(44 - 24 * Math.sin(t) + gauss(rng) * 1.8), g: 0 });
+      }
+      for (i = 0; i < 60; i++) {
+        t = Math.PI * rng();
+        out.push({ x: cx(57 + 24 * Math.cos(t) + gauss(rng) * 1.8), y: cy(36 + 24 * Math.sin(t) + gauss(rng) * 1.8), g: 1 });
+      }
+      return out;
+    },
+    rings: function (rng) {
+      var out = [], i, t, r;
+      for (i = 0; i < 50; i++) {
+        t = 2 * Math.PI * rng(); r = 9 + gauss(rng) * 1;
+        out.push({ x: cx(50 + r * Math.cos(t)), y: cy(40 + r * Math.sin(t)), g: 0 });
+      }
+      for (i = 0; i < 90; i++) {
+        t = 2 * Math.PI * rng(); r = 30 + gauss(rng) * 1.2;
+        out.push({ x: cx(50 + r * Math.cos(t)), y: cy(40 + r * Math.sin(t)), g: 1 });
+      }
+      return out;
+    },
+    cloud: function (rng) { return blob(rng, 50, 40, 14, 120, 0); },
+    empty: function () { return []; }
+  };
+
+  function makeDataset(id, seed) { var f = DATASETS[id]; return f ? f(mulberry32(seed)) : []; }
+  function d2(a, b) { var dx = a.x - b.x, dy = a.y - b.y; return dx * dx + dy * dy; }
+
+  /* Assign step: index of the nearest centroid for every point (ties go to the lower index). */
+  function assign(points, cents) {
+    return points.map(function (p) {
+      var best = 0, bd = Infinity;
+      for (var j = 0; j < cents.length; j++) {
+        var d = d2(p, cents[j]);
+        if (d < bd) { bd = d; best = j; }
+      }
+      return best;
+    });
+  }
+  /* Inertia: sum of squared distances from each point to its own centroid. */
+  function inertia(points, labels, cents) {
+    var s = 0;
+    for (var i = 0; i < points.length; i++) s += d2(points[i], cents[labels[i]]);
+    return s;
+  }
+  /* Update step: each centroid moves to the mean of its points. An empty cluster keeps its centroid where it is. */
+  function update(points, labels, cents) {
+    var k = cents.length, sx = [], sy = [], n = [], j;
+    for (j = 0; j < k; j++) { sx.push(0); sy.push(0); n.push(0); }
+    for (var i = 0; i < points.length; i++) { var l = labels[i]; sx[l] += points[i].x; sy[l] += points[i].y; n[l]++; }
+    return cents.map(function (c, q) { return n[q] ? { x: sx[q] / n[q], y: sy[q] / n[q] } : { x: c.x, y: c.y }; });
+  }
+  function sameLabels(a, b) {
+    if (!a || !b || a.length !== b.length) return false;
+    for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  }
+  function sizes(labels, k) {
+    var out = [];
+    for (var j = 0; j < k; j++) out.push(0);
+    labels.forEach(function (l) { out[l]++; });
+    return out;
+  }
+  /* Start: k distinct data points chosen at random. */
+  function initCentroids(points, k, rng) {
+    var idx = points.map(function (_, i) { return i; }), out = [], m = Math.min(k, points.length);
+    for (var j = 0; j < m; j++) {
+      var r = j + Math.floor(rng() * (idx.length - j));
+      var t = idx[j]; idx[j] = idx[r]; idx[r] = t;
+      out.push({ x: points[idx[j]].x, y: points[idx[j]].y });
+    }
+    return out;
+  }
+  /* Whole algorithm in one call (used for the elbow chart and for tests). */
+  function run(points, k, rng, maxLoops) {
+    maxLoops = maxLoops || 100;
+    var c = initCentroids(points, k, rng), labels = null, loops = 0;
+    for (;;) {
+      var nl = assign(points, c);
+      if (sameLabels(labels, nl) || loops >= maxLoops) { labels = nl; break; }
+      labels = nl;
+      c = update(points, labels, c);
+      loops++;
+    }
+    return { centroids: c, labels: labels, inertia: inertia(points, labels, c), loops: loops };
+  }
+  function bestOf(points, k, restarts, seed) {
+    var best = null;
+    for (var r = 0; r < restarts; r++) {
+      var res = run(points, k, mulberry32(seed + r * 7919));
+      if (!best || res.inertia < best.inertia) best = res;
+    }
+    return best;
+  }
+  function elbow(points, kmax, restarts, seed) {
+    var out = [];
+    for (var k = 1; k <= Math.min(kmax, points.length); k++) out.push(bestOf(points, k, restarts, seed + k * 977).inertia);
+    return out;
+  }
+  return {
+    W: W, H: H, mulberry32: mulberry32, makeDataset: makeDataset, assign: assign, inertia: inertia, update: update,
+    sameLabels: sameLabels, sizes: sizes, initCentroids: initCentroids, run: run, bestOf: bestOf, elbow: elbow
+  };
+})();
+if (typeof module !== "undefined") module.exports = KM;
+</script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="intro">
+      <h1>K-means lab</h1>
+      <p class="lede">K-means sorts points into <b>k</b> groups by repeating two steps: <b>assign</b> every point to its nearest centroid, then <b>move</b> each centroid to the middle of its points. Press the big button under Run and watch what each step does.</p>
+    </div>
+    <div class="aside">
+      <dl class="terms">
+        <div><dt>Centroid</dt><dd>The centre of one group, drawn as a numbered circle.</dd></div>
+        <div><dt>Inertia</dt><dd>The total squared distance from every point to its own centroid. Lower means tighter groups.</dd></div>
+      </dl>
+      <a class="jump" href="#tasks" id="jump">Go to the guided tasks</a>
+    </div>
+  </header>
+
+  <div class="layout">
+    <section class="card stage" id="stage" aria-label="Canvas and results">
+      <div class="canvas-box"><canvas id="cv" role="img" aria-label="Scatter plot"></canvas></div>
+      <div class="legend" id="legend" aria-label="Cluster legend"></div>
+      <p class="msg" id="msg" aria-live="polite"></p>
+      <div class="readout">
+        <div class="stat"><span class="k">Loops done</span><b id="loops">0</b></div>
+        <div class="stat"><span class="k">Inertia</span><b id="inertia">&ndash;</b></div>
+        <div class="stat"><span class="k">Status</span><b id="status" class="chip">Ready</b></div>
+      </div>
+      <p class="hint">Click empty space to add a point. Drag a centroid to move it. Grid squares are 10 by 10 units.</p>
+    </section>
+
+    <div class="side">
+      <section class="card controls" aria-label="Controls">
+        <div class="field">
+          <label for="dataset">Data set</label>
+          <div class="row">
+            <select id="dataset">
+              <option value="blobs3">Three blobs</option>
+              <option value="moons">Two moons</option>
+              <option value="rings">Two rings</option>
+              <option value="cloud">One cloud</option>
+              <option value="empty">Draw your own</option>
+            </select>
+            <button class="btn" id="newpoints" type="button">New points</button>
+            <button class="btn" id="clear" type="button">Clear</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="k">Number of clusters, k = <output id="kval" for="k">3</output></label>
+          <input type="range" id="k" min="1" max="6" step="1" value="3">
+          <div class="ticks" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></div>
+        </div>
+        <div class="field">
+          <span class="lbl" id="startlbl">Starting centroids</span>
+          <div class="row">
+            <button class="btn" id="newstart" type="button">New random start</button>
+            <span class="hint" id="startlabel">Start #1</span>
+          </div>
+        </div>
+        <div class="field">
+          <span class="lbl">Run</span>
+          <button class="btn primary big" id="step" type="button">1. Assign points</button>
+          <div class="row">
+            <button class="btn" id="play" type="button">Play</button>
+            <button class="btn" id="skip" type="button">Skip to end</button>
+          </div>
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" id="showRegions" checked> Show regions</label>
+          <label><input type="checkbox" id="showLines" checked> Show distance lines</label>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="chart-h">
+        <h2 id="chart-h">Inertia after each step</h2>
+        <svg class="chart" id="inertiaChart" viewBox="0 0 360 170" role="img" aria-label="Inertia after each step"></svg>
+        <p class="key"><span><svg width="12" height="12" viewBox="-6 -6 12 12" aria-hidden="true"><circle r="4.5" fill="currentColor"/></svg>after Assign</span><span><svg width="12" height="12" viewBox="-6 -6 12 12" aria-hidden="true"><rect x="-4.5" y="-4.5" width="9" height="9" fill="currentColor"/></svg>after Move</span></p>
+      </section>
+
+      <section id="tasks" aria-labelledby="tasks-h">
+        <h2 id="tasks-h">Guided tasks</h2>
+        <ol class="tasks">
+
+          <li class="card task">
+            <h3>Watch one loop</h3>
+            <p class="goal">Goal: predict where a centroid moves in the Move step, and say why.</p>
+            <div class="row"><button class="btn small setup" type="button" data-dataset="blobs3" data-k="3">Load Three blobs, k = 3</button></div>
+            <ol class="how">
+              <li>Press <b>Assign points</b>. Each point takes the colour and shape of its nearest centroid.</li>
+              <li>Before you go on, point at where you expect each centroid to land.</li>
+              <li>Press <b>Move centroids</b> and compare.</li>
+            </ol>
+            <div class="check" data-correct="1">
+              <p class="q">Where does each centroid move?</p>
+              <div class="opts">
+                <button class="opt" type="button" data-i="0" data-why="It lands on the average position of all its points, which is usually not on any single point.">To the point in its cluster that is nearest to it.</button>
+                <button class="opt" type="button" data-i="1" data-why="The new centroid has the mean x and the mean y of its cluster. That is where the name k-means comes from.">To the average position of all the points in its cluster.</button>
+                <button class="opt" type="button" data-i="2" data-why="In this step each centroid only looks at its own points.">Toward the nearest other centroid.</button>
+              </div>
+              <p class="fb" role="status" aria-live="polite"></p>
+            </div>
+          </li>
+
+          <li class="card task">
+            <h3>Run until it stops</h3>
+            <p class="goal">Goal: recognise when k-means has converged, and say why it stops.</p>
+            <div class="row"><button class="btn small setup" type="button" data-dataset="blobs3" data-k="3">Load Three blobs, k = 3</button></div>
+            <ol class="how">
+              <li>Press <b>Play</b> to watch every step, or <b>Skip to end</b>.</li>
+              <li>Look at the inertia chart. It falls, then goes flat. It never goes up.</li>
+              <li>Read the message under the canvas when the status turns to Converged.</li>
+            </ol>
+            <div class="check" data-correct="2">
+              <p class="q">Why does the algorithm stop?</p>
+              <div class="opts">
+                <button class="opt" type="button" data-i="0" data-why="It keeps looping for as long as something changes. The number of loops depends on the data and the start.">It stops after a fixed number of loops.</button>
+                <button class="opt" type="button" data-i="1" data-why="Inertia only reaches zero if every point sits exactly on a centroid. Here it levels off at a positive value.">Inertia reaches zero.</button>
+                <button class="opt" type="button" data-i="2" data-why="With no point changing cluster, the Move step would put every centroid where it already is, so nothing can change any more.">In the Assign step no point changes cluster.</button>
+              </div>
+              <p class="fb" role="status" aria-live="polite"></p>
+            </div>
+          </li>
+
+          <li class="card task">
+            <h3>Does the start matter?</h3>
+            <p class="goal">Goal: show that different starting centroids can give different results, and pick the best one.</p>
+            <div class="row"><button class="btn small setup" type="button" data-dataset="blobs3" data-k="3">Load Three blobs, k = 3</button></div>
+            <ol class="how">
+              <li>Press <b>New random start</b>, then <b>Skip to end</b>.</li>
+              <li>Repeat about six times. Each finished run is added below.</li>
+              <li>Look at a run with high inertia. How many centroids ended up in one blob?</li>
+            </ol>
+            <div>
+              <ul class="runs" id="runs" aria-label="Finished runs"></ul>
+              <p class="sum" id="runsum"></p>
+            </div>
+            <div class="check" data-correct="0">
+              <p class="q">Some runs end with higher inertia. Which result do you keep?</p>
+              <div class="opts">
+                <button class="opt" type="button" data-i="0" data-why="Lower inertia means tighter groups. Libraries do the same: they run k-means several times and keep the best run.">The run with the lowest inertia.</button>
+                <button class="opt" type="button" data-i="1" data-why="Nothing makes the first start better than any other. Compare the results before you choose.">The first run.</button>
+                <button class="opt" type="button" data-i="2" data-why="The number of loops says how long a run took, not how good the groups are.">The run with the most loops.</button>
+              </div>
+              <p class="fb" role="status" aria-live="polite"></p>
+            </div>
+          </li>
+
+          <li class="card task">
+            <h3>Choose k</h3>
+            <p class="goal">Goal: pick k from the inertia-versus-k curve, and say why the lowest inertia is not enough.</p>
+            <div class="row">
+              <button class="btn small setup" type="button" data-dataset="blobs3" data-k="3">Load Three blobs, k = 3</button>
+              <button class="btn small setup" type="button" data-dataset="cloud" data-k="3">Load One cloud</button>
+            </div>
+            <ol class="how">
+              <li>Press <b>Plot inertia for k = 1 to 6</b>. For each k the lab tries 10 random starts and keeps the lowest inertia.</li>
+              <li>Look for the bend: the k after which extra clusters barely help.</li>
+              <li>Load One cloud and plot again. Is the bend as clear as before?</li>
+            </ol>
+            <div class="row"><button class="btn primary" id="elbowBtn" type="button">Plot inertia for k = 1 to 6</button></div>
+            <div id="elbowOut">
+              <svg class="chart" id="elbowChart" viewBox="0 0 360 206" role="img" aria-label="Lowest inertia found for each k"></svg>
+              <p class="key"><span><svg width="16" height="16" viewBox="-8 -8 16 16" aria-hidden="true"><circle r="6" fill="none" stroke="currentColor" stroke-width="2"/></svg>the k on the slider</span></p>
+              <div class="tablewrap"><table id="elbowTable"></table></div>
+            </div>
+            <div class="check" data-correct="2">
+              <p class="q">Why not just pick the k with the lowest inertia?</p>
+              <div class="opts">
+                <button class="opt" type="button" data-i="0" data-why="It is the other way round: inertia is highest at k = 1 and falls as k grows.">Inertia is lowest at k = 1.</button>
+                <button class="opt" type="button" data-i="1" data-why="Inertia can be computed for any k. Look at the table.">Inertia cannot be computed for large k.</button>
+                <button class="opt" type="button" data-i="2" data-why="More centroids always sit closer to the points, so the largest k always wins, even when the groups mean nothing. Pick the k where the drop levels off.">Inertia keeps falling as k grows, so the largest k always wins.</button>
+              </div>
+              <p class="fb" role="status" aria-live="polite"></p>
+            </div>
+          </li>
+
+          <li class="card task">
+            <h3>Find where it breaks</h3>
+            <p class="goal">Goal: name data shapes where k-means fails, and say why.</p>
+            <div class="row">
+              <button class="btn small setup" type="button" data-dataset="moons" data-k="2">Load Two moons, k = 2</button>
+              <button class="btn small setup" type="button" data-dataset="rings" data-k="2">Load Two rings, k = 2</button>
+            </div>
+            <ol class="how">
+              <li>Press <b>Skip to end</b>. Does each colour follow one moon?</li>
+              <li>Keep <b>Show regions</b> on and look at the borders between the shaded areas.</li>
+              <li>Load Two rings and try again.</li>
+            </ol>
+            <div class="check" data-correct="0">
+              <p class="q">Why does k-means cut across these shapes?</p>
+              <div class="opts">
+                <button class="opt" type="button" data-i="0" data-why="Every point joins its nearest centroid, so the groups are round and the border between two groups is a straight line halfway between their centroids.">Groups are round and the borders between them are straight lines.</button>
+                <button class="opt" type="button" data-i="1" data-why="It has already converged. More loops change nothing.">It needs more loops to finish.</button>
+                <button class="opt" type="button" data-i="2" data-why="A larger k would still cut the shapes into round pieces instead of following them.">k should be larger than 2.</button>
+              </div>
+              <p class="fb" role="status" aria-live="polite"></p>
+            </div>
+          </li>
+
+        </ol>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var K_MAX = 6, MAX_POINTS = 400, STEP_MS = 650;
+  var BASE_SEED = { blobs3: 11, moons: 23, rings: 37, cloud: 51, empty: 0 };
+  var NAMES = ["Cluster 1", "Cluster 2", "Cluster 3", "Cluster 4", "Cluster 5", "Cluster 6"];
+
+  function $(s) { return document.querySelector(s); }
+  var cv = $("#cv"), ctx = cv.getContext("2d");
+  var rc = document.createElement("canvas"), rctx = rc.getContext("2d");
+
+  var S = {
+    dataset: "blobs3", dataNo: 0, points: [], k: 3, cents: [], labels: null, next: "assign",
+    loops: 0, converged: false, trails: [], series: [], runs: [], startNo: 0, startLabel: "Start #1",
+    elbow: null, playing: false, timer: null, msg: "", drag: -1, showRegions: true, showLines: true
+  };
+
+  /* ---------- helpers ---------- */
+  function fmt(v) {
+    if (v === 0) return "0";
+    if (v >= 100) return Math.round(v).toLocaleString("en-US");
+    return v.toFixed(1);
+  }
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+  function dataSeed() { return BASE_SEED[S.dataset] + S.dataNo * 101; }
+  function hexToRgb(h) {
+    h = h.replace("#", "");
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  function lum(rgb) {
+    var c = rgb.map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+  function inkOn(hex) {
+    var L = lum(hexToRgb(hex));
+    return (1.05 / (L + 0.05)) >= ((L + 0.05) / 0.0525) ? "#ffffff" : "#0b0b0b";
+  }
+  function shapePath(i, x, y, r) {
+    var s, d, a, t;
+    switch (i % 6) {
+      case 0: return "M" + (x - r) + " " + y + "a" + r + " " + r + " 0 1 0 " + (2 * r) + " 0a" + r + " " + r + " 0 1 0 " + (-2 * r) + " 0Z";
+      case 1: s = r * 0.88; return "M" + (x - s) + " " + (y - s) + "h" + (2 * s) + "v" + (2 * s) + "h" + (-2 * s) + "Z";
+      case 2: return "M" + x + " " + (y - r * 1.15) + "L" + (x + r * 1.1) + " " + (y + r * 0.85) + "L" + (x - r * 1.1) + " " + (y + r * 0.85) + "Z";
+      case 3: d = r * 1.25; return "M" + x + " " + (y - d) + "L" + (x + d) + " " + y + "L" + x + " " + (y + d) + "L" + (x - d) + " " + y + "Z";
+      case 4: return "M" + x + " " + (y + r * 1.15) + "L" + (x + r * 1.1) + " " + (y - r * 0.85) + "L" + (x - r * 1.1) + " " + (y - r * 0.85) + "Z";
+      default:
+        a = r * 1.2; t = r * 0.45;
+        return "M" + (x - t) + " " + (y - a) + "h" + (2 * t) + "v" + (a - t) + "h" + (a - t) + "v" + (2 * t) + "h" + (-(a - t)) + "v" + (a - t) +
+          "h" + (-2 * t) + "v" + (-(a - t)) + "h" + (-(a - t)) + "v" + (-2 * t) + "h" + (a - t) + "Z";
+    }
+  }
+  function niceMax(v) {
+    if (v <= 0) return 1;
+    var e = Math.pow(10, Math.floor(Math.log10(v))), m = v / e, steps = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+    for (var i = 0; i < steps.length; i++) if (m <= steps[i] + 1e-9) return steps[i] * e;
+    return 10 * e;
+  }
+  function lastInertia() { return S.series.length ? S.series[S.series.length - 1].v : null; }
+
+  /* ---------- state changes ---------- */
+  function readyMessage() {
+    var n = S.points.length;
+    if (!n) return "Click the canvas to add points. You need at least " + S.k + ".";
+    if (n < S.k) return "Add " + (S.k - n) + " more point" + (S.k - n > 1 ? "s" : "") + " to place " + S.k + " centroids.";
+    if (S.startLabel === "Custom start") return "Centroids are where you dragged them. Press Assign points: each point will join its nearest centroid.";
+    return "Centroids start on " + S.k + " random data points. Press Assign points: each point will join its nearest centroid.";
+  }
+  function stopPlay() {
+    S.playing = false;
+    if (S.timer) { clearTimeout(S.timer); S.timer = null; }
+  }
+  function resetRun() {
+    stopPlay();
+    S.labels = null; S.next = "assign"; S.loops = 0; S.converged = false; S.series = [];
+    S.trails = S.cents.map(function (c) { return [{ x: c.x, y: c.y }]; });
+    S.msg = readyMessage();
+    render();
+  }
+  function newStart(bump) {
+    if (bump) S.startNo++;
+    S.startLabel = "Start #" + S.startNo;
+    if (S.points.length >= S.k) {
+      var rng = KM.mulberry32(5000 + S.startNo * 7919 + dataSeed());
+      S.cents = KM.initCentroids(S.points, S.k, rng);
+    } else {
+      S.cents = [];
+    }
+    resetRun();
+  }
+  function loadDataset(id) {
+    S.dataset = id;
+    S.points = KM.makeDataset(id, dataSeed());
+    S.runs = []; S.elbow = null;
+    $("#dataset").value = id;
+    if (S.points.length && S.k > S.points.length) S.k = S.points.length;
+    $("#k").value = S.k;
+    newStart(true);
+  }
+  function setup(id, k) {
+    S.dataNo = 0; S.startNo = 0; S.k = k;
+    loadDataset(id);
+  }
+  function addPoint(p) {
+    if (S.points.length >= MAX_POINTS) { S.msg = "Point limit reached (" + MAX_POINTS + "). Press Clear to start again."; render(); return; }
+    S.points.push({ x: clamp(p.x, 1, KM.W - 1), y: clamp(p.y, 1, KM.H - 1) });
+    S.runs = []; S.elbow = null;
+    if (S.cents.length !== S.k && S.points.length >= S.k) newStart(true);
+    else resetRun();
+  }
+
+  function stepCore() {
+    if (!S.cents.length || S.converged) return false;
+    var v;
+    if (S.next === "assign") {
+      var nl = KM.assign(S.points, S.cents);
+      v = KM.inertia(S.points, nl, S.cents);
+      if (S.labels && KM.sameLabels(S.labels, nl)) {
+        S.converged = true;
+        S.series.push({ kind: "assign", v: v });
+        S.runs.push({ label: S.startLabel, v: v, loops: S.loops });
+        if (S.runs.length > 8) S.runs.shift();
+        S.msg = "No point changed cluster, so moving the centroids again would change nothing. Converged after " + S.loops + " loop" + (S.loops === 1 ? "" : "s") +
+          ". Final inertia: " + fmt(v) + ". Press New random start to try again.";
+      } else {
+        S.labels = nl;
+        S.series.push({ kind: "assign", v: v });
+        S.next = "update";
+        S.msg = "Each point joined its nearest centroid. Cluster sizes: " + KM.sizes(nl, S.k).join(", ") + ". Inertia is " + fmt(v) + ". Next, press Move centroids.";
+      }
+    } else {
+      var prev = lastInertia();
+      var nc = KM.update(S.points, S.labels, S.cents), mm = 0;
+      nc.forEach(function (c, j) { mm = Math.max(mm, Math.sqrt(Math.pow(c.x - S.cents[j].x, 2) + Math.pow(c.y - S.cents[j].y, 2))); });
+      S.cents = nc;
+      S.trails.forEach(function (t, j) { t.push({ x: nc[j].x, y: nc[j].y }); });
+      S.loops++;
+      v = KM.inertia(S.points, S.labels, nc);
+      S.series.push({ kind: "update", v: v });
+      S.next = "assign";
+      S.msg = "Each centroid moved to the mean of its points (biggest move: " + mm.toFixed(1) + " units). Inertia " +
+        (prev !== null && v < prev - 1e-9 ? "fell from " + fmt(prev) + " to " + fmt(v) : "stayed at " + fmt(v)) +
+        ". Press Assign points: some points may now be closer to a different centroid.";
+    }
+    return true;
+  }
+  function step() { stepCore(); render(); }
+  function tick() {
+    if (!S.playing) return;
+    stepCore();
+    render();
+    if (S.converged) { stopPlay(); render(); return; }
+    S.timer = setTimeout(tick, STEP_MS);
+  }
+  function togglePlay() {
+    if (S.playing) { stopPlay(); render(); return; }
+    if (S.converged || !S.cents.length) return;
+    S.playing = true;
+    render();
+    tick();
+  }
+  function skip() {
+    stopPlay();
+    var guard = 0;
+    while (!S.converged && S.cents.length && guard++ < 1000) stepCore();
+    render();
+  }
+
+  /* ---------- canvas ---------- */
+  function cssVar(cs, n) { return cs.getPropertyValue(n).trim(); }
+  function drawCanvas() {
+    var cw = cv.clientWidth, ch = cv.clientHeight;
+    if (!cw || !ch) return;
+    var dpr = window.devicePixelRatio || 1;
+    if (cv.width !== Math.round(cw * dpr) || cv.height !== Math.round(ch * dpr)) {
+      cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
+    }
+    var cs = getComputedStyle(document.documentElement);
+    var surface = cssVar(cs, "--surface"), gridc = cssVar(cs, "--grid"), none = cssVar(cs, "--none"), ink = cssVar(cs, "--ink");
+    var cc = []; for (var q = 1; q <= K_MAX; q++) cc.push(cssVar(cs, "--c" + q));
+    var font = getComputedStyle(document.body).fontFamily;
+    var sx = cw / KM.W, sy = ch / KM.H, i, j;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.fillStyle = surface; ctx.fillRect(0, 0, cw, ch);
+
+    /* graph-paper grid, one line every 10 units */
+    ctx.strokeStyle = gridc; ctx.lineWidth = 1; ctx.beginPath();
+    for (i = 10; i < KM.W; i += 10) { ctx.moveTo(Math.round(i * sx) + 0.5, 0); ctx.lineTo(Math.round(i * sx) + 0.5, ch); }
+    for (i = 10; i < KM.H; i += 10) { ctx.moveTo(0, Math.round(i * sy) + 0.5); ctx.lineTo(cw, Math.round(i * sy) + 0.5); }
+    ctx.stroke();
+
+    /* regions: every spot on the canvas tinted by its nearest centroid */
+    if (S.showRegions && S.cents.length) {
+      var cell = 5, rw = Math.ceil(cw / cell), rh = Math.ceil(ch / cell);
+      rc.width = rw; rc.height = rh;
+      var img = rctx.createImageData(rw, rh), rgb = cc.map(hexToRgb);
+      var alpha = Math.round(255 * parseFloat(cssVar(cs, "--region-alpha")));
+      for (j = 0; j < rh; j++) {
+        var yy = ((j + 0.5) * cell) / sy;
+        for (i = 0; i < rw; i++) {
+          var xx = ((i + 0.5) * cell) / sx, best = 0, bd = Infinity;
+          for (q = 0; q < S.cents.length; q++) {
+            var dx = xx - S.cents[q].x, dy = yy - S.cents[q].y, d = dx * dx + dy * dy;
+            if (d < bd) { bd = d; best = q; }
+          }
+          var o = (j * rw + i) * 4, col = rgb[best];
+          img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = alpha;
+        }
+      }
+      rctx.putImageData(img, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(rc, 0, 0, rw * cell, rh * cell);
+    }
+
+    /* distance lines from each point to its centroid */
+    if (S.showLines && S.labels) {
+      ctx.lineWidth = 1; ctx.globalAlpha = 0.28;
+      for (j = 0; j < S.points.length; j++) {
+        var l = S.labels[j];
+        if (l == null || l < 0 || l >= S.cents.length) continue;
+        ctx.strokeStyle = cc[l];
+        ctx.beginPath(); ctx.moveTo(S.points[j].x * sx, S.points[j].y * sy); ctx.lineTo(S.cents[l].x * sx, S.cents[l].y * sy); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    /* points: colour and shape both say which cluster */
+    for (j = 0; j < S.points.length; j++) {
+      var px = S.points[j].x * sx, py = S.points[j].y * sy, lab = S.labels ? S.labels[j] : -1;
+      var has = lab != null && lab >= 0 && lab < S.cents.length;
+      var path = new Path2D(shapePath(has ? lab : 0, px, py, 4.3));
+      ctx.lineWidth = 2.5; ctx.strokeStyle = surface; ctx.stroke(path);
+      ctx.fillStyle = has ? cc[lab] : none; ctx.fill(path);
+    }
+
+    /* centroid trails: drawn above the points so the path of each move stays visible */
+    for (j = 0; j < S.trails.length; j++) {
+      var tr = S.trails[j];
+      if (tr.length < 2) continue;
+      ctx.lineJoin = "round"; ctx.lineCap = "round";
+      [[5.5, surface], [2.5, cc[j]]].forEach(function (pen) {
+        ctx.lineWidth = pen[0]; ctx.strokeStyle = pen[1];
+        ctx.beginPath();
+        tr.forEach(function (p, n) { if (n === 0) ctx.moveTo(p.x * sx, p.y * sy); else ctx.lineTo(p.x * sx, p.y * sy); });
+        ctx.stroke();
+      });
+      for (i = 0; i < tr.length - 1; i++) {
+        ctx.beginPath(); ctx.arc(tr[i].x * sx, tr[i].y * sy, 4.5, 0, 6.2832);
+        ctx.fillStyle = surface; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = cc[j]; ctx.stroke();
+      }
+    }
+
+    /* centroids: numbered badges */
+    ctx.font = "700 12px " + font; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    for (j = 0; j < S.cents.length; j++) {
+      var cx0 = S.cents[j].x * sx, cy0 = S.cents[j].y * sy;
+      ctx.beginPath(); ctx.arc(cx0, cy0, 13.5, 0, 6.2832); ctx.lineWidth = 1.5; ctx.strokeStyle = ink; ctx.fillStyle = surface; ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx0, cy0, 10, 0, 6.2832); ctx.fillStyle = cc[j]; ctx.fill();
+      ctx.fillStyle = inkOn(cc[j]); ctx.fillText(String(j + 1), cx0, cy0 + 0.5);
+    }
+
+    cv.setAttribute("aria-label", "Scatter plot with " + S.points.length + " points and " + S.cents.length + " centroids. " +
+      (S.labels ? "Points are coloured by cluster." : "Points are not assigned yet."));
+  }
+
+  /* ---------- charts ---------- */
+  function inertiaChart() {
+    var W = 360, H = 170, L = 52, R = 14, T = 12, B = 32, pw = W - L - R, ph = H - T - B;
+    var n = S.series.length, out = "", i;
+    var vmax = n ? niceMax(Math.max.apply(null, S.series.map(function (s) { return s.v; }))) : 1;
+    var xMax = Math.max(6, n);
+    function X(idx) { return L + (idx / (xMax - 1)) * pw; }
+    function Y(v) { return T + ph * (1 - v / vmax); }
+    [0, 0.5, 1].forEach(function (f) {
+      var y = Y(vmax * f);
+      out += '<line class="' + (f === 0 ? "base" : "gl") + '" x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '"/>';
+      out += '<text class="tx end" x="' + (L - 8) + '" y="' + (y + 4) + '">' + (n ? fmt(vmax * f) : (f === 0 ? "0" : "")) + "</text>";
+    });
+    out += '<text class="tx mid" x="' + (L + pw / 2) + '" y="' + (H - 6) + '">Step number</text>';
+    if (!n) {
+      out += '<text class="tx mid" x="' + (L + pw / 2) + '" y="' + (T + ph / 2) + '">Press Assign points to start the chart.</text>';
+      $("#inertiaChart").innerHTML = out;
+      $("#inertiaChart").setAttribute("aria-label", "Inertia chart, no steps yet");
+      return;
+    }
+    out += '<text class="tx mid" x="' + X(0) + '" y="' + (T + ph + 16) + '">1</text>';
+    if (n > 1) out += '<text class="tx mid" x="' + X(n - 1) + '" y="' + (T + ph + 16) + '">' + n + "</text>";
+    out += '<polyline class="ln" points="' + S.series.map(function (s, k) { return X(k) + "," + Y(s.v); }).join(" ") + '"/>';
+    S.series.forEach(function (s, k) {
+      var x = X(k), y = Y(s.v), t = "<title>Step " + (k + 1) + ", after " + (s.kind === "assign" ? "Assign" : "Move") + ": inertia " + fmt(s.v) + "</title>";
+      out += s.kind === "assign" ? '<circle class="mk" cx="' + x + '" cy="' + y + '" r="4.5">' + t + "</circle>"
+        : '<rect class="mk" x="' + (x - 4.5) + '" y="' + (y - 4.5) + '" width="9" height="9">' + t + "</rect>";
+    });
+    out += '<circle class="ring" cx="' + X(n - 1) + '" cy="' + Y(S.series[n - 1].v) + '" r="9"/>';
+    $("#inertiaChart").innerHTML = out;
+    $("#inertiaChart").setAttribute("aria-label", "Inertia after each step: from " + fmt(S.series[0].v) + " to " + fmt(S.series[n - 1].v) + " over " + n + " steps");
+  }
+
+  function elbowChart() {
+    var out = $("#elbowOut"), svg = $("#elbowChart"), tbl = $("#elbowTable");
+    if (!S.elbow) {
+      svg.innerHTML = '<text class="tx mid" x="180" y="100">Press the button to plot the curve.</text>';
+      tbl.innerHTML = "";
+      svg.setAttribute("aria-label", "Inertia versus k, not plotted yet");
+      return;
+    }
+    var vals = S.elbow, W = 360, H = 206, L = 52, R = 18, T = 26, B = 36, pw = W - L - R, ph = H - T - B, s = "", m = vals.length;
+    var vmax = niceMax(Math.max.apply(null, vals));
+    function X(k) { return L + ((k - 1) / (K_MAX - 1)) * pw; }
+    function Y(v) { return T + ph * (1 - v / vmax); }
+    [0, 0.5, 1].forEach(function (f) {
+      var y = Y(vmax * f);
+      s += '<line class="' + (f === 0 ? "base" : "gl") + '" x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '"/>';
+      s += '<text class="tx end" x="' + (L - 8) + '" y="' + (y + 4) + '">' + fmt(vmax * f) + "</text>";
+    });
+    for (var k = 1; k <= K_MAX; k++) s += '<text class="tx mid" x="' + X(k) + '" y="' + (T + ph + 16) + '">' + k + "</text>";
+    s += '<text class="tx mid" x="' + (L + pw / 2) + '" y="' + (H - 6) + '">k (number of clusters)</text>';
+    s += '<text class="tx" x="' + (L - 40) + '" y="' + (T - 14) + '">Inertia</text>';
+    s += '<polyline class="ln" points="' + vals.map(function (v, i) { return X(i + 1) + "," + Y(v); }).join(" ") + '"/>';
+    vals.forEach(function (v, i) {
+      s += '<circle class="mk" cx="' + X(i + 1) + '" cy="' + Y(v) + '" r="4.5"><title>k = ' + (i + 1) + ": inertia " + fmt(v) + "</title></circle>";
+    });
+    if (S.k <= m) s += '<circle class="ring" cx="' + X(S.k) + '" cy="' + Y(vals[S.k - 1]) + '" r="9"/>';
+    svg.innerHTML = s;
+    svg.setAttribute("aria-label", "Lowest inertia found for each k, from " + fmt(vals[0]) + " at k = 1 to " + fmt(vals[m - 1]) + " at k = " + m);
+    var rows = '<tr><th>k</th><th>Lowest inertia</th><th>Drop from previous k</th></tr>';
+    vals.forEach(function (v, i) {
+      var drop = i === 0 ? "&ndash;" : Math.round((1 - v / vals[i - 1]) * 100) + "%";
+      rows += '<tr' + (i + 1 === S.k ? ' class="cur"' : "") + "><td>" + (i + 1) + (i + 1 === S.k ? " (slider)" : "") + "</td><td>" + fmt(v) + "</td><td>" + drop + "</td></tr>";
+    });
+    tbl.innerHTML = rows;
+  }
+
+  function renderRuns() {
+    var el = $("#runs"), sum = $("#runsum");
+    if (!S.runs.length) {
+      el.innerHTML = '<li class="empty">No finished runs yet. Press New random start, then Skip to end.</li>';
+      sum.textContent = "";
+      return;
+    }
+    var max = Math.max.apply(null, S.runs.map(function (r) { return r.v; })), min = Math.min.apply(null, S.runs.map(function (r) { return r.v; }));
+    el.innerHTML = S.runs.map(function (r) {
+      var best = r.v <= min * 1.005;
+      return '<li class="' + (best ? "best" : "") + '"><span>' + r.label + '</span><span class="bar"><i style="width:' + (r.v / max * 100).toFixed(1) + '%"></i></span><span class="val">' + fmt(r.v) +
+        '</span><span class="tag">' + (best ? "&#10003; Lowest" : "") + "</span></li>";
+    }).join("");
+    var sorted = S.runs.map(function (r) { return r.v; }).sort(function (a, b) { return a - b; }), distinct = 1;
+    for (var i = 1; i < sorted.length; i++) if (sorted[i] > sorted[i - 1] * 1.005) distinct++;
+    sum.textContent = S.runs.length + " finished run" + (S.runs.length > 1 ? "s" : "") + ", " + distinct + " different result" + (distinct > 1 ? "s" : "") + ". Bars start at zero inertia.";
+  }
+
+  /* ---------- UI ---------- */
+  function renderLegend() {
+    var lg = $("#legend"), html = "", sz = S.labels ? KM.sizes(S.labels, S.cents.length) : null;
+    for (var j = 0; j < S.cents.length; j++) {
+      html += '<span class="lg"><svg width="18" height="18" viewBox="-9 -9 18 18" aria-hidden="true"><path d="' + shapePath(j, 0, 0, 5.5) + '" fill="var(--c' + (j + 1) + ')"/></svg>' +
+        NAMES[j] + (sz ? ' <span class="n">' + sz[j] + " points</span>" : "") + "</span>";
+    }
+    lg.innerHTML = html;
+  }
+  function renderUI() {
+    var inert = lastInertia();
+    $("#loops").textContent = S.loops;
+    $("#inertia").textContent = inert === null ? "–" : fmt(inert);
+    var st = $("#status");
+    if (S.converged) { st.textContent = "✓ Converged"; st.className = "chip good"; }
+    else if (S.labels) { st.textContent = "Running"; st.className = "chip"; }
+    else { st.textContent = "Ready"; st.className = "chip"; }
+    $("#msg").textContent = S.msg;
+    $("#startlabel").textContent = S.cents.length ? S.startLabel : "";
+    $("#kval").textContent = S.k;
+    var sb = $("#step");
+    sb.disabled = !S.cents.length || S.converged;
+    sb.textContent = S.converged ? "Converged" : S.next === "assign" ? "1. Assign points" : "2. Move centroids";
+    $("#play").textContent = S.playing ? "Pause" : "Play";
+    $("#play").disabled = !S.cents.length || S.converged;
+    $("#skip").disabled = !S.cents.length || S.converged;
+    $("#newstart").disabled = S.points.length < S.k;
+    $("#newpoints").disabled = S.dataset === "empty";
+    $("#clear").disabled = S.dataset === "empty" && !S.points.length;
+    renderLegend();
+    inertiaChart();
+    elbowChart();
+    renderRuns();
+    $("#elbowBtn").textContent = S.elbow ? "Plot again" : "Plot inertia for k = 1 to 6";
+  }
+  function render() { renderUI(); drawCanvas(); }
+
+  /* ---------- events ---------- */
+  function toData(e) {
+    var r = cv.getBoundingClientRect();
+    return { x: (e.clientX - r.left) / r.width * KM.W, y: (e.clientY - r.top) / r.height * KM.H };
+  }
+  function hitCentroid(e) {
+    var r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, best = -1, bd = 18 * 18;
+    S.cents.forEach(function (c, j) {
+      var dx = c.x / KM.W * r.width - mx, dy = c.y / KM.H * r.height - my, d = dx * dx + dy * dy;
+      if (d <= bd) { bd = d; best = j; }
+    });
+    return best;
+  }
+  cv.addEventListener("pointerdown", function (e) {
+    var hit = hitCentroid(e);
+    if (hit >= 0) {
+      S.drag = hit;
+      resetRun();
+      try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+      cv.classList.add("dragging");
+      return;
+    }
+    addPoint(toData(e));
+  });
+  cv.addEventListener("pointermove", function (e) {
+    if (S.drag >= 0) {
+      var p = toData(e);
+      S.cents[S.drag] = { x: clamp(p.x, 0, KM.W), y: clamp(p.y, 0, KM.H) };
+      drawCanvas();
+    } else {
+      cv.style.cursor = hitCentroid(e) >= 0 ? "grab" : "crosshair";
+    }
+  });
+  function endDrag() {
+    if (S.drag < 0) return;
+    S.drag = -1;
+    cv.classList.remove("dragging");
+    S.startLabel = "Custom start";
+    resetRun();
+  }
+  cv.addEventListener("pointerup", endDrag);
+  cv.addEventListener("pointercancel", endDrag);
+
+  $("#dataset").addEventListener("change", function (e) { S.dataNo = 0; loadDataset(e.target.value); });
+  $("#newpoints").addEventListener("click", function () { S.dataNo++; loadDataset(S.dataset); });
+  $("#clear").addEventListener("click", function () { S.dataNo = 0; loadDataset("empty"); });
+  $("#k").addEventListener("input", function (e) {
+    S.k = parseInt(e.target.value, 10);
+    S.runs = [];
+    newStart(true);
+  });
+  $("#newstart").addEventListener("click", function () { newStart(true); });
+  $("#step").addEventListener("click", function () { stopPlay(); step(); });
+  $("#play").addEventListener("click", togglePlay);
+  $("#skip").addEventListener("click", skip);
+  $("#showRegions").addEventListener("change", function (e) { S.showRegions = e.target.checked; drawCanvas(); });
+  $("#showLines").addEventListener("change", function (e) { S.showLines = e.target.checked; drawCanvas(); });
+  $("#elbowBtn").addEventListener("click", function () {
+    if (S.points.length < 2) { S.msg = "Add at least 2 points before plotting inertia for different k."; render(); return; }
+    S.elbow = KM.elbow(S.points, K_MAX, 10, 321);
+    render();
+  });
+  $("#jump").addEventListener("click", function (e) {
+    e.preventDefault();
+    $("#tasks").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  });
+
+  document.addEventListener("click", function (e) {
+    var su = e.target.closest(".setup");
+    if (su) {
+      setup(su.dataset.dataset, parseInt(su.dataset.k, 10));
+      var stage = $("#stage");
+      if (getComputedStyle(stage).position !== "sticky") {
+        stage.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+      }
+      return;
+    }
+    var b = e.target.closest(".opt");
+    if (!b) return;
+    var box = b.closest(".check"), ok = parseInt(b.dataset.i, 10) === parseInt(box.dataset.correct, 10);
+    box.querySelectorAll(".opt").forEach(function (o) { o.classList.remove("is-right", "is-wrong"); o.setAttribute("aria-pressed", o === b ? "true" : "false"); });
+    b.classList.add(ok ? "is-right" : "is-wrong");
+    var fb = box.querySelector(".fb");
+    fb.className = "fb " + (ok ? "good" : "bad");
+    fb.textContent = (ok ? "Correct. " : "Not quite. ") + b.dataset.why;
+  });
+
+  if (window.ResizeObserver) new ResizeObserver(function () { drawCanvas(); }).observe(cv);
+  window.addEventListener("resize", drawCanvas);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawCanvas);
+  new MutationObserver(drawCanvas).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  /* test hooks (read-only view of the state) */
+  window.__lab = { state: S, step: step, skip: skip };
+
+  setup("blobs3", 3);
+})();
+</script>
+<script src="../assets/labs.js"></script>
+<script src="../assets/lab-nav.js"></script>
+</body>
+</html>

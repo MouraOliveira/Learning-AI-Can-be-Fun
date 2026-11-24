@@ -1,0 +1,184 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Perceptron Lab: from lines to a neural network</title><link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+<style>
+:root{--bg:#f3f5f8;--card:#fff;--ink:#1a2330;--mut:#5f6b7a;--line:#d3d9e1;--grid:#e9edf2;--pos:rgba(34,197,94,.2);--neg:rgba(100,116,139,.14);--ok:#15803d;--bad:#dc2626;--gl:rgba(100,116,139,.35);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1318;--card:#181e26;--ink:#e6ebf2;--mut:#93a0b1;--line:#2d3744;--grid:#232c37;--pos:rgba(34,197,94,.22);--neg:rgba(148,163,184,.12);--ok:#4ade80;--bad:#f87171}}
+:root[data-theme="dark"]{--bg:#0f1318;--card:#181e26;--ink:#e6ebf2;--mut:#93a0b1;--line:#2d3744;--grid:#232c37;--pos:rgba(34,197,94,.22);--neg:rgba(148,163,184,.12);--ok:#4ade80;--bad:#f87171}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{padding:14px 18px 0}h1{font:600 21px Georgia,serif;margin:0}header p{margin:3px 0 0;color:var(--mut);max-width:70ch}
+main{display:grid;grid-template-columns:minmax(0,560px) minmax(0,1fr);gap:14px;padding:14px 18px;align-items:start}
+@media(max-width:900px){main{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px;min-width:0}
+h2{font-size:14px;margin:0 0 8px;font-weight:600}
+.bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:7px;padding:5px 9px;cursor:pointer}button.on{background:var(--ink);color:var(--card);border-color:var(--ink)}button:focus-visible,textarea:focus-visible{outline:2px solid #2563eb;outline-offset:1px}
+canvas{width:100%;aspect-ratio:1;display:block;border:1px solid var(--line);border-radius:8px;touch-action:none;background:var(--card);cursor:crosshair}
+.hint{color:var(--mut);font-size:12.5px;margin:8px 0 0}
+textarea{width:100%;font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:7px;resize:vertical}
+svg text{fill:var(--ink);font-family:Georgia,"Times New Roman",serif}svg .w{font-size:12px;paint-order:stroke;stroke:var(--card);stroke-width:4px;stroke-linejoin:round}
+.sc{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}td,th{padding:3px 6px;border-bottom:1px solid var(--grid);text-align:center;white-space:nowrap}
+.eq{font:15px Cambria,Georgia,serif;margin:4px 0;white-space:nowrap}.msg{padding:8px 10px;border-radius:7px;background:var(--bg);color:var(--mut);margin-bottom:8px}
+.st{margin:14px 0 4px;font-weight:600}select{font:inherit;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:4px}.bar label{display:flex;align-items:center;gap:5px;color:var(--mut)}input[type=number]{width:66px;font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 4px;text-align:center}.pr{color:var(--mut);margin:4px 0}.ok{color:var(--ok);font-weight:600}.bad{color:var(--bad);font-weight:600}sub{font-size:.72em}
+</style></head><body>
+<header><h1>Perceptron Lab: from lines to a neural network</h1><p>Draw lines, place labelled points and choose each point’s target class. The tool finds the smallest Heaviside network that separates them (one line = one neuron; two or more lines = hidden neurons plus an output neuron) and shows every equation and weight.</p></header>
+<main><section>
+<div class="card"><div class="bar" id="tools"></div><canvas id="cv" width="600" height="600" aria-label="Drawing area"></canvas>
+<p class="hint">Line: drag to draw (max 5; the arrow points to the side where the neuron outputs 1, chosen automatically towards the class-1 points). Hover a line to read its start and end coordinates. The Snap menu lets lines start and end between integer coordinates. Point: click to place. Move: drag handles or points; click a point to flip its class. Right-click or Delete tool removes.</p></div>
+<div class="card"><h2>Classification objective</h2><textarea id="obj" rows="2" placeholder="Describe what the network should do, e.g. “Class 1 only inside the triangle, class 0 everywhere else.”"></textarea></div>
+<div class="card"><h2>Try your own weights</h2><p class="hint" style="margin:0 0 8px">Choose the number of hidden neurons and type the weights (x₃ = +1 is the bias input and f is the Heaviside step, f(g) = 1 for g ≥ 0). With 1 hidden neuron (one line) that neuron is also the output: y = f(ω<sub>h11</sub>x₁ + ω<sub>h12</sub>x₂ + ω<sub>h13</sub>·1). With 2 or more, an output neuron s1 combines them: y = f(ω<sub>s11</sub>y₁ + … + ω<sub>s1(m+1)</sub>·1). The lab tests the weights on your points and shows every weighted sum g.</p><div class="bar"><label>Hidden neurons <select id="um"></select></label><button id="ufill">Use the lab’s solution</button><button id="uzero">Reset to 0</button><label><input type="checkbox" id="ushow"> Show on canvas and diagram</label></div><div class="sc" id="uin"></div><div class="msg" id="uv" style="margin-top:8px"></div><div class="sc" id="ures"></div></div>
+</section><section>
+<div class="card"><h2>Network architecture</h2><div id="msg" class="msg"></div><svg id="net" viewBox="0 0 760 450" width="100%"></svg></div>
+<div class="card"><h2>Lines and perceptron equations</h2><div class="sc" id="eqs"></div></div>
+<div class="card"><h2>Weights</h2><div class="sc" id="wts"></div></div>
+<div class="card"><h2>Step-by-step derivation of the weights</h2><div class="sc" id="der"></div></div>
+<div class="card"><h2>Classification results</h2><div class="msg" id="goal"></div><div class="sc" id="res"></div></div>
+</section></main>
+<script>
+const N=6,PX=600,U=PX/(2*N),LC=['#2563eb','#dc2626','#16a34a','#d97706','#9333ea'],$=id=>document.getElementById(id),cv=$('cv'),cx=cv.getContext('2d');
+let L=[],P=[],tool='line',sol=null,drag=null,tip=null,stp=.5,UW={t:0,m:1,W:[[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]],S:[0,0,0,0,0],b:0,show:0};
+const H=v=>v>=-1e-9?1:0,fmt=n=>(+n.toFixed(2)).toString().replace('-','−'),r1=v=>Math.round(v*10)/10,cl=v=>Math.max(-N,Math.min(N,v)),snap=v=>cl(r1(Math.round(v/stp)*stp));
+const toPx=(x,y)=>[(x+N)*U,(N-y)*U],toW=(a,b)=>[a/U-N,N-b/U],lab=i=>String.fromCharCode(97+i)+')',sub=s=>'ω<sub>'+s+'</sub>',SB=['₁','₂','₃','₄','₅','₆'];
+const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);
+function coef(l){const[X0,Y0,X1,Y1]=l.p.flat().map(v=>Math.round(v*10)),a=-(Y1-Y0),b=X1-X0,c=-(a*X0+b*Y0),g=gcd(gcd(10*a,10*b),c)||1;return[10*a/g,10*b/g,c/g].map(v=>v*(l.s||1)+0)}
+function lin(w,v){let s='';w.forEach((c,i)=>{if(!c)return;const a=Math.abs(c),t=(a==1&&v[i]?'':fmt(a))+v[i];s+=s?(c<0?' − ':' + ')+t:(c<0?'−':'')+t});return s||'0'}
+const combos=(n,k,s=0,a=[])=>k?Array.from({length:n-s},(_,i)=>i+s).flatMap(i=>combos(n,k-1,i+1,[...a,i])):[a];
+function fit(E){const n=E[0][0].length+1,w=Array(n).fill(0),ok=()=>E.every(([c,t])=>H(w[n-1]+c.reduce((s,v,j)=>s+v*w[j],0))==t);
+ const rec=(i,r)=>{if(i==n-1){for(const v of r?[r,-r]:[0]){w[i]=v;if(ok())return 1}return 0}
+  for(let a=0;a<=r;a++)for(const v of a?[a,-a]:[0]){w[i]=v;if(rec(i+1,r-a))return 1}return 0};
+ for(let B=0;B<=2*n+2;B++)if(rec(0,B))return[...w];return null}
+function solve(){sol=null;orient();if(!L.length||!P.length)return;const C=L.map(coef);
+ for(let i=0;i<L.length;i++)if(P.every(p=>H(C[i][0]*p.x+C[i][1]*p.y+C[i][2])==p.c))return sol={idx:[i],W:[C[i]],S:null,E:[]};
+ for(let k=2;k<=L.length;k++)for(const idx of combos(L.length,k)){const m=new Map();let bad=0;
+  P.forEach(p=>{const code=idx.map(i=>H(C[i][0]*p.x+C[i][1]*p.y+C[i][2])),key=code.join('');if(m.has(key)&&m.get(key)[1]!=p.c)bad=1;m.set(key,[code,p.c])});
+  if(bad)continue;const S=fit([...m.values()]);if(S)return sol={idx,W:idx.map(i=>C[i]),S,E:[...m.values()]}}}
+function net(x,y,M=sol){const h=M.W.map(w=>H(w[0]*x+w[1]*y+w[2]));return M.W.length==1?[h,h[0]]:[h,H(M.S[h.length]+h.reduce((s,v,i)=>s+v*M.S[i],0))]}
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function draw(){cx.clearRect(0,0,PX,PX);
+ const M=UW.show?umodel():sol;
+ if(M){const pos=css('--pos'),neg=css('--neg');for(let i=0;i<PX;i+=10)for(let j=0;j<PX;j+=10){const[x,y]=toW(i+5,j+5);cx.fillStyle=net(x,y,M)[1]?pos:neg;cx.fillRect(i,j,10,10)}}
+ cx.strokeStyle=css('--gl');cx.lineWidth=1;cx.beginPath();for(let i=0;i<=2*N;i++){cx.moveTo(i*U,0);cx.lineTo(i*U,PX);cx.moveTo(0,i*U);cx.lineTo(PX,i*U)}cx.stroke();
+ cx.strokeStyle=css('--mut');cx.beginPath();cx.moveTo(N*U,0);cx.lineTo(N*U,PX);cx.moveTo(0,N*U);cx.lineTo(PX,N*U);cx.stroke();
+ cx.fillStyle=css('--mut');cx.font='italic 14px Georgia';cx.fillText('x₁',PX-24,N*U-8);cx.fillText('x₂',N*U+8,16);
+ cx.font='11px system-ui';for(let i=-N;i<=N;i++){if(!i)continue;const q=(i+N)*U,o=N*U,t=String(i).replace('-','−');cx.textAlign=i==N?'right':i==-N?'left':'center';cx.textBaseline='top';cx.fillText(t,q,o+4);cx.textAlign='right';cx.textBaseline=i==N?'top':i==-N?'bottom':'middle';cx.fillText(t,o-5,(N-i)*U)}cx.textAlign='left';cx.textBaseline='alphabetic';
+ L.forEach((l,i)=>{const used=!sol||sol.idx.includes(i),[a,b]=toPx(...l.p[0]),[c,d]=toPx(...l.p[1]),dx=c-a,dy=d-b,n=Math.hypot(dx,dy),co=coef(l);
+  cx.strokeStyle=cx.fillStyle=LC[i];cx.lineWidth=(used?2.5:1.5)+(tip&&tip.li===i?2:0);cx.setLineDash(used?[]:[6,5]);cx.beginPath();cx.moveTo(a-dx/n*2000,b-dy/n*2000);cx.lineTo(a+dx/n*2000,b+dy/n*2000);cx.stroke();cx.setLineDash([]);
+  const mx=(a+c)/2,my=(b+d)/2,nl=Math.hypot(co[0],co[1]),nx=co[0]/nl,ny=-co[1]/nl;cx.lineWidth=2;cx.beginPath();cx.moveTo(mx,my);cx.lineTo(mx+nx*26,my+ny*26);cx.stroke();
+  cx.beginPath();cx.arc(mx+nx*26,my+ny*26,3.5,0,7);cx.fill();
+  l.p.forEach((q,j)=>{const[u,v]=toPx(...q);cx.beginPath();cx.arc(u,v,6,0,7);cx.fill();if(tip&&tip.li===i){cx.font='11px system-ui';cx.fillText(j?'end':'start',u+9,v+16)}});cx.font='bold 13px system-ui';cx.fillText('L'+(i+1),a+8,b-9)});
+ if(UW.show){ubounds(M);cx.fillStyle=css('--mut');cx.font='12px system-ui';cx.textBaseline='alphabetic';cx.fillText('Dashed lines and shading: your weights',8,16)}
+ P.forEach((p,i)=>{const[a,b]=toPx(p.x,p.y);if(M&&net(p.x,p.y,M)[1]!=p.c){cx.strokeStyle=css('--bad');cx.lineWidth=2.5;cx.beginPath();cx.arc(a,b,14,0,7);cx.stroke()}
+  cx.fillStyle=p.c?'#16a34a':'#64748b';cx.strokeStyle=css('--card');cx.lineWidth=2;cx.beginPath();cx.arc(a,b,9,0,7);cx.fill();cx.stroke();
+  cx.fillStyle=css('--ink');cx.font='bold 14px system-ui';cx.fillText(lab(i),a+11,b-10)});if(tip)drawTip()}
+function drawNet(){const keep=sol,svg=$('net');if(UW.show)sol=umodel();try{netSvg(svg);if(UW.show)svg.insertAdjacentHTML('beforeend','<text x="6" y="16" font-size="13" style="fill:var(--mut)">Diagram: your weights (the panels below show the lab’s solution)</text>')}finally{sol=keep}}
+function netSvg(svg){if(!sol){svg.innerHTML='';return}
+ const m=sol.idx.length,R=m>3?20:26,ix=120,hx=m==1?450:380,ox=620,ox1=m==1?hx:ox,iy=[90,215,340],oy=215,by=405,sp=[0,0,200,200,240,280][m],hy=k=>m==1?215:215-sp/2+k*sp/(m-1),F=n=>fmt(n);
+ let s='<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--ink)"/></marker></defs>';
+ const E=(x1,y1,x2,y2,nm,v,t)=>{const dx=x2-x1,dy=y2-y1,l=Math.hypot(dx,dy),ux=dx/l,uy=dy/l;return`<line x1="${x1+ux*R}" y1="${y1+uy*R}" x2="${x2-ux*(R+2)}" y2="${y2-uy*(R+2)}" stroke="var(--ink)" stroke-width="1.4" marker-end="url(#ah)"/><text class="w" font-size="${m>3?11:13}" text-anchor="middle" x="${x1+dx*t}" y="${y1+dy*t-6}">ω<tspan dy="3" font-size="9">${nm}</tspan><tspan dy="-3"> = ${F(v)}</tspan></text>`};
+ const C=(x,y,t,col)=>`<circle cx="${x}" cy="${y}" r="${R}" fill="var(--card)" stroke="${col}" stroke-width="2"/><text x="${x}" y="${y}" dy=".35em" text-anchor="middle" font-size="18" style="fill:${col}">${t}</text>`;
+ for(let k=0;k<m;k++){for(let j=0;j<3;j++)s+=E(ix,iy[j],hx,hy(k),`h${k+1}${j+1}`,sol.W[k][j],m>3?(k%2?.4:.2):.27);if(m>1)s+=E(hx,hy(k),ox,oy,`s1${k+1}`,sol.S[k],.5)}
+ if(m>1)s+=E(hx,by,ox,oy,`s1${m+1}`,sol.S[m],.5);
+ iy.forEach((y,j)=>{s+=`<line x1="34" y1="${y}" x2="${ix-R-2}" y2="${y}" stroke="var(--ink)" stroke-width="1.4" marker-end="url(#ah)"/><text x="6" y="${y-8}" font-size="22" font-style="italic">x<tspan dy="5" font-size="14">${j+1}</tspan></text>`+C(ix,y,j==2?'+1':'','#1d4ed8')});
+ for(let k=0;k<m;k++){const c=LC[sol.idx[k]];s+=C(hx,hy(k),'h'+(k+1),c)+(m==1?'':`<text x="${hx+R-2}" y="${hy(k)-R+4}" font-size="22" font-weight="bold" style="fill:${c}">y<tspan dy="5" font-size="14">${k+1}</tspan></text>`)}
+ s+=(m>1?C(hx,by,'+1','#b91c1c')+C(ox,oy,'s1','var(--ink)'):'')+`<line x1="${ox1+R}" y1="${oy}" x2="${ox1+R+(m==1?150:68)}" y2="${oy}" stroke="var(--ink)" stroke-width="1.4" marker-end="url(#ah)"/><text x="${ox1+R+(m==1?158:76)}" y="${oy+6}" font-size="26" font-style="italic">y</text>`+(m==1?`<text x="${ox1+R+28}" y="${oy-10}" font-size="16" font-style="italic">y = y<tspan dy="4" font-size="11">1</tspan></text>`:'');svg.innerHTML=s}
+function render(){const m=sol?sol.idx.length:0,msg=$('msg');
+ $('eqs').innerHTML=(L.map((l,i)=>{const u=sol?sol.idx.indexOf(i):0;return`<div class="eq"><b style="color:${LC[i]}">L${i+1}</b>: ${lineEq(l)} <span style="color:var(--mut);font-size:13px">[start (${fmt(l.p[0][0])}, ${fmt(l.p[0][1])}) → end (${fmt(l.p[1][0])}, ${fmt(l.p[1][1])})]</span> <span style="color:var(--mut);font-size:13px">${sol?(u>=0?'→ neuron h'+(u+1):'(not needed)'):''}</span></div>`}).join('')||'<div class="msg">No lines yet.</div>')+
+ (sol?'<hr style="border:0;border-top:1px solid var(--line)"><div class="eq" style="color:var(--mut)">f(g) = 1 if g ≥ 0, otherwise 0 &nbsp; x₃ = +1</div>'+sol.W.map((w,k)=>`<div class="eq">g<sub>h${k+1}</sub> = ${sub('h'+(k+1)+'1')}x₁ + ${sub('h'+(k+1)+'2')}x₂ + ${sub('h'+(k+1)+'3')}x₃ = ${lin(w,['x₁','x₂','x₃'])}</div><div class="eq">g<sub>h${k+1}</sub> = 0 ⇔ ${nEq(w)} &nbsp;<span style="color:var(--mut);font-size:13px">(${m==1?'y':'y'+SB[k]} = 1 ${side(w)})</span></div><div class="eq" style="margin-bottom:10px"><b style="color:${LC[sol.idx[k]]}">${m==1?'y':'y'+SB[k]}</b> = f(g<sub>h${k+1}</sub>)</div>`).join('')+
+ (m>1?`<div class="eq">g<sub>s1</sub> = ${sol.S.map((_,j)=>sub('s1'+(j+1))+(j<m?'y'+SB[j]:'·1')).join(' + ')} = ${lin(sol.S,[...sol.S.slice(0,m).map((_,j)=>'y'+SB[j]),''])}</div><div class="eq"><b>y</b> = f(g<sub>s1</sub>)</div>`:''):'');
+ const th=a=>'<tr><th></th>'+a.map(x=>`<th>${x}</th>`).join('')+'</tr>';
+ $('wts').innerHTML=sol?`<table>${th(['x₁','x₂','x₃ (+1)'])}${sol.W.map((w,k)=>`<tr><th style="color:${LC[sol.idx[k]]}">h${k+1}</th>${w.map((v,j)=>`<td>${sub('h'+(k+1)+(j+1))} = <b>${fmt(v)}</b></td>`).join('')}</tr>`).join('')}</table>${m>1?`<br><table>${th([...sol.W.map((_,k)=>'y'+SB[k]),'+1'])}<tr><th>s1</th>${sol.S.map((v,j)=>`<td>${sub('s1'+(j+1))} = <b>${fmt(v)}</b></td>`).join('')}</tr></table>`:''}`:'<div class="msg">Weights appear once a network is found.</div>';
+ let ok=0;const rows=P.map((p,i)=>{let h=[],y='–',g='';if(sol){[h,y]=net(p.x,p.y);g=y==p.c;ok+=g}return`<tr><td><b>${lab(i)}</b></td><td>(${fmt(p.x)}, ${fmt(p.y)})</td>${sol&&m>1?h.map(v=>`<td>${v}</td>`).join(''):''}<td><b>${y}</b></td><td>${p.c}</td><td class="${g?'ok':'bad'}">${sol?(g?'✓':'✗'):''}</td></tr>`}).join('');
+ $('res').innerHTML=P.length?`<table>${th(['(x₁, x₂)',...(sol&&m>1?sol.W.map((_,k)=>'y'+SB[k]):[]),'y','target',''])}${rows}</table>`:'<div class="msg">Place points to see results.</div>';
+ const un=L.length-m;
+ msg.innerHTML=!L.length||!P.length?'Draw at least one line and place points (● class 1, ○ class 0).':sol?`<b style="color:var(--ink)">${m==1?'A single neuron is enough (it is also the output neuron)':'Minimum hidden neurons: '+m+', plus the output neuron s1'}</b> (lines ${sol.idx.map(i=>'L'+(i+1)).join(', ')})${un?`; ${un} other line${un>1?'s are':' is'} not needed`:''}. ${ok}/${P.length} points classified correctly. Green shading = region where y = 1. ${m==1?'The neuron':'Each hidden neuron'} outputs 1 on the side of the class-1 points.`:L.length==1?'This line does not separate the classes, and one neuron can only use one line. Move the line, fix the point classes, or add a second line: with two or more lines an output neuron combines them.':'No network found: with these lines, one Heaviside output neuron cannot separate the classes. It can only combine line outputs in a linearly separable way (AND, OR, NOR…). Add or move lines, or fix point classes. Tip: for an XOR-like pattern, enclose the class-1 points between two lines (a band) instead of crossing them.';
+ $('goal').textContent='Objective: '+($('obj').value.trim()||'(not described yet)')}
+const fr=(n,d)=>{const g=gcd(n,d)||1;return d<0?[-n/g+0,-d/g]:[n/g+0,d/g]},cs=([n,d])=>d==1?''+Math.abs(n):Math.abs(n)+'/'+d,fs=q=>(q[0]<0?'−':'')+cs(q);
+function mc(m,c){let s='x₂ = ';if(m[0])s+=(m[0]<0?'−':'')+(Math.abs(m[0])==m[1]?'':m[1]==1?cs(m):'('+cs(m)+')')+'x₁';if(c[0])s+=(m[0]?(c[0]<0?' − ':' + '):(c[0]<0?'−':''))+cs(c);return m[0]||c[0]?s:s+'0'}
+const lineEq=l=>{const[X0,Y0,X1,Y1]=l.p.flat().map(v=>Math.round(v*10)),DX=X1-X0,DY=Y1-Y0;return DX?mc(fr(DY,DX),fr(Y0*DX-DY*X0,10*DX)):'x₁ = '+fmt(l.p[0][0])},nEq=w=>w[1]?mc(fr(-w[0],w[1]),fr(-w[2],w[1])):'x₁ = '+fs(fr(-w[2],w[0])),side=w=>w[1]?(w[1]>0?'on and above the line':'on and below the line'):(w[0]>0?'on and right of the line':'on and left of the line');
+function orient(){L.forEach(l=>{l.s=1;const c=coef(l);let d=0;P.forEach(p=>{d+=Math.sign(c[0]*p.x+c[1]*p.y+c[2])*(p.c?1:-.001)});l.s=d<0?-1:1})}
+function tipSet(px,py,x,y,h){const f=(a,b)=>`(${fmt(a)}, ${fmt(b)})`,ln=i=>`L${i+1}: start ${f(...L[i].p[0])} → end ${f(...L[i].p[1])}`;let t,li=-1;
+ if(drag&&drag.t=='p'){const p=P[drag.i];t=lab(drag.i)+' '+f(p.x,p.y)}
+ else if(drag){li=drag.i;t=ln(li)}
+ else if(h&&h.t=='p')t=lab(h.i)+' '+f(P[h.i].x,P[h.i].y);
+ else if(h){li=h.i;t=ln(li)}
+ else t=tool=='line'?f(snap(x),snap(y)):f(r1(cl(x)),r1(cl(y)));
+ tip={px,py,t,li,sn:!drag&&!h&&tool=='line'?[snap(x),snap(y)]:0}}
+function drawTip(){if(tip.sn){const[a,b]=toPx(...tip.sn);cx.strokeStyle=css('--ink');cx.lineWidth=1.5;cx.beginPath();cx.arc(a,b,5,0,7);cx.stroke()}cx.font='12px system-ui';const w=cx.measureText(tip.t).width+12;let x=tip.px+14,y=tip.py-30;if(x+w>PX)x=tip.px-w-10;if(y<2)y=tip.py+16;
+ cx.fillStyle=css('--card');cx.strokeStyle=css('--mut');cx.lineWidth=1;cx.beginPath();cx.rect(x,y,w,20);cx.fill();cx.stroke();cx.fillStyle=css('--ink');cx.textBaseline='middle';cx.fillText(tip.t,x+6,y+10);cx.textBaseline='alphabetic'}
+const umodel=()=>({idx:[...Array(UW.m).keys()],W:UW.W.slice(0,UW.m),S:UW.m==1?null:[...UW.S.slice(0,UW.m),UW.b]}),
+uEq=(w,k,n='y'+SB[k])=>!w[0]&&!w[1]?`constant: ${n} = ${w[2]>=0?1:0} everywhere`:(w[1]?'x₂ = '+lin([-w[0]/w[1],-w[2]/w[1]],['x₁','']):'x₁ = '+fmt(-w[2]/w[0]))+` (${n} = 1 ${side(w)})`;
+function ubounds(M){M.W.forEach((w,k)=>{const[a,b,c]=w;if(!a&&!b)return;let p,q;
+ if(Math.abs(b)>=Math.abs(a)){p=[-N,-(c-a*N)/b];q=[N,-(c+a*N)/b]}else{p=[-(c-b*N)/a,-N];q=[-(c+b*N)/a,N]}
+ const[u,v]=toPx(...p),[s,t]=toPx(...q),mx=(u+s)/2,my=(v+t)/2,nl=Math.hypot(a,b),nx=a/nl,ny=-b/nl;
+ cx.strokeStyle=cx.fillStyle=LC[k];cx.lineWidth=2.5;cx.setLineDash([3,4]);cx.beginPath();cx.moveTo(u,v);cx.lineTo(s,t);cx.stroke();cx.setLineDash([]);
+ cx.lineWidth=2;cx.beginPath();cx.moveTo(mx,my);cx.lineTo(mx+nx*26,my+ny*26);cx.stroke();cx.beginPath();cx.arc(mx+nx*26,my+ny*26,3.5,0,7);cx.fill();
+ cx.font='bold 12px system-ui';cx.fillText('h'+(k+1),mx+nx*34+(nx<0?-14:2),my+ny*34)})}
+function uInputs(){const m=UW.m,I=(v,a)=>`<input type='number' step='any' value='${v}' ${a}>`;
+ $('uin').innerHTML=`<table><tr><th></th><th>x₁</th><th>x₂</th><th>x₃ (+1)</th></tr>${UW.W.slice(0,m).map((w,k)=>`<tr><th style='color:${LC[k]}'>h${k+1}</th>${w.map((v,j)=>`<td>${sub('h'+(k+1)+(j+1))}<br>${I(v,`data-r='h' data-k='${k}' data-j='${j}' aria-label='weight h${k+1}${j+1}'`)}</td>`).join('')}</tr>`).join('')}</table>${m>1?`<br><table><tr><th></th>${UW.S.slice(0,m).map((_,j)=>`<th>y${SB[j]}</th>`).join('')}<th>+1</th></tr><tr><th>s1</th>${UW.S.slice(0,m).map((v,j)=>`<td>${sub('s1'+(j+1))}<br>${I(v,`data-r='s' data-j='${j}' aria-label='weight s1${j+1}'`)}</td>`).join('')}<td>${sub('s1'+(m+1))}<br>${I(UW.b,`data-r='b' aria-label='bias weight s1${m+1}'`)}</td></tr></table>`:`<p class='hint'>One neuron, so there is no output neuron and no output weights: <b>y = f(g<sub>h1</sub>)</b>.</p>`}`}
+function gnet(x,y,M){const z=g=>Math.abs(g)<1e-9?0:g,gh=M.W.map(w=>z(w[0]*x+w[1]*y+w[2])),h=gh.map(H),gs=M.W.length==1?null:z(M.S[h.length]+h.reduce((s,v,i)=>s+v*M.S[i],0));return{gh,h,gs,y:M.W.length==1?h[0]:H(gs)}}
+function uCheck(){if(!UW.t){$('uv').textContent='Type your weights above to test your own network, or press “Use the lab’s solution”.';$('ures').innerHTML='';return}
+ const M=umodel(),m=UW.m,th=a=>'<tr>'+a.map(x=>`<th>${x}</th>`).join('')+'</tr>',gf=g=>(+g.toPrecision(3)).toString().replace('-','−'),pn=n=>n<0?'('+fmt(n)+')':fmt(n),G=P.map(p=>gnet(p.x,p.y,M)),bad=[];
+ const rows=P.map((p,i)=>{const r=G[i],ok=r.y==p.c;if(!ok)bad.push(i);return`<tr><td><b>${lab(i)}</b></td><td>(${fmt(p.x)}, ${fmt(p.y)})</td>${r.gh.map((g,k)=>`<td>${gf(g)} → ${m==1?`<b>${r.y}</b>`:r.h[k]}</td>`).join('')}${m>1?`<td>${gf(r.gs)} → <b>${r.y}</b></td>`:''}<td>${p.c}</td><td class='${ok?'ok':'bad'}'>${ok?'✓':'✗'}</td></tr>`}).join('');
+ const mn=sol?sol.idx.length:0;let why='';
+ if(bad.length){const i=bad[0],p=P[i],r=G[i],w0=M.W[0];
+  why=`<div style='margin-top:6px'><b>Why ${lab(i)} fails:</b> `+(m==1?`g<sub>h1</sub> = ${pn(w0[0])}·${pn(p.x)} + ${pn(w0[1])}·${pn(p.y)} + ${pn(w0[2])}·1 = ${gf(r.gh[0])}, so y = f(${gf(r.gh[0])}) = ${r.y}, but the target is ${p.c}.`+(r.gh[0]==0&&p.c==0?` A sum of exactly 0 gives 1, because f(0) = 1: the point lies on the line, so move the line or change ${sub('h13')}.`:''):`${r.gh.map((g,k)=>`g<sub>h${k+1}</sub> = ${gf(g)} → y${SB[k]} = ${r.h[k]}`).join(', ')}. Output neuron: g<sub>s1</sub> = ${[...M.S.slice(0,m).map((v,j)=>pn(v)+'·'+r.h[j]),pn(M.S[m])+'·1'].join(' + ')} = ${gf(r.gs)}, so y = f(${gf(r.gs)}) = ${r.y}, but the target is ${p.c}.`+(r.gs==0&&p.c==0?` A sum of exactly 0 gives 1, because f(0) = 1. To output 0, g<sub>s1</sub> must be negative, for example with a negative bias ${sub('s1'+(m+1))}.`:''))+`</div>`}
+ $('uv').innerHTML=(!P.length?'Place points on the canvas to test your weights.':!bad.length?`<b class='ok'>Your weights work!</b> All ${P.length} points are classified correctly.`+(mn&&m>mn?(mn==1?' One neuron is enough here: with a single line there is no output neuron.':` The lab found a network with only ${mn} hidden neuron${mn>1?'s':''}.`):''):`<b class='bad'>Not yet.</b> ${P.length-bad.length} of ${P.length} points are correct; misclassified: ${bad.map(i=>lab(i)).join(' ')}.`+(mn&&m<mn?` With these lines the lab needs at least ${mn} hidden neurons.`:''))+why;
+ const eq=M.W.map((w,k)=>`<div class='eq'><b style='color:${LC[k]}'>h${k+1}</b>: g<sub>h${k+1}</sub> = ${lin(w,['x₁','x₂','x₃'])} &nbsp;⇒&nbsp; ${uEq(w,k,m==1?'y':undefined)}</div>`).join('')+(m==1?`<div class='eq'><b>y</b> = f(g<sub>h1</sub>)</div>`:`<div class='eq'><b>y</b> = f(g<sub>s1</sub>), &nbsp;g<sub>s1</sub> = ${lin(M.S,[...M.W.map((_,k)=>'y'+SB[k]),''])}</div>`);
+ $('ures').innerHTML=`<div style='margin:8px 0'>${eq}</div>`+(P.length?`<table>${th(['','(x₁, x₂)',...M.W.map((_,k)=>`g<sub>h${k+1}</sub> → ${m==1?'y':'y'+SB[k]}`),...(m>1?['g<sub>s1</sub> → y']:[]),'t',''])}${rows}</table>`:'')}
+function uInit(){$('um').innerHTML=[1,2,3,4,5].map(n=>`<option value="${n}"${n==UW.m?' selected':''}>${n==1?'1 (also the output)':n}</option>`).join('');uInputs();
+ $('um').onchange=e=>{UW.m=+e.target.value;UW.t=1;uInputs();update()};
+ $('uin').oninput=e=>{UW.t=1;const t=e.target.dataset,v=parseFloat(e.target.value)||0;if(t.r=='h')UW.W[+t.k][+t.j]=v;else if(t.r=='s')UW.S[+t.j]=v;else UW.b=v;UW.show=1;$('ushow').checked=true;update()};
+ $('ushow').onchange=e=>{UW.show=+e.target.checked;update()};
+ $('uzero').onclick=()=>{UW.W=[...Array(5)].map(()=>[0,0,0]);UW.S=[0,0,0,0,0];UW.b=0;UW.t=0;UW.show=0;$('ushow').checked=false;uInputs();update()};
+ $('ufill').onclick=()=>{if(!sol){$('uv').textContent='The lab has no solution to copy yet: draw lines and place points first.';return}const m=sol.idx.length;UW.t=1;UW.m=m;$('um').value=m;UW.W=[...Array(5)].map((_,k)=>sol.W[k]?[...sol.W[k]]:[0,0,0]);UW.S=[...Array(5)].map((_,j)=>j<m&&sol.S?sol.S[j]:0);UW.b=sol.S?sol.S[m]:0;UW.show=1;$('ushow').checked=true;uInputs();update()}}
+function derive(){const d=$('der');if(!sol){d.innerHTML=`<div class='msg'>The derivation appears once a network is found.</div>`;return}
+const m=sol.idx.length,Y=sol.W.map((_,j)=>'y'+SB[j]),th=a=>'<tr>'+a.map(x=>`<th>${x}</th>`).join('')+'</tr>',td=a=>'<tr>'+a.map(x=>`<td>${x}</td>`).join('')+'</tr>',pw=n=>n<0?'('+fmt(n)+')':fmt(n);
+let s=`<p class='pr'>Each neuron fires (output 1) when its weighted sum g ≥ 0. We write each drawn line as x₂ = m·x₁ + c, write the boundary of each neuron in the same form, and compare m and c to read off the weights.</p>${m==1?`<p class='pr'>One line, so one neuron is enough: h<sub>1</sub> receives x₁, x₂ and x₃ = +1 directly and its output is the network output y. There is no output neuron.</p>`:''}<div class='st'>Step 1: equation of each line, x₂ = m·x₁ + c</div>`;
+const LM=sol.idx.map(i=>{const[[x0,y0],[x1,y1]]=L[i].p,[X0,Y0,X1,Y1]=L[i].p.flat().map(v=>Math.round(v*10)),DX=X1-X0,DY=Y1-Y0,dx=DX/10,dy=DY/10;return{x0,y0,x1,y1,dx,dy,m:DX?fr(DY,DX):0,c:DX?fr(Y0*DX-DY*X0,10*DX):0}});
+LM.forEach((q,k)=>{const i=sol.idx[k];s+=`<div class='eq'><b style='color:${LC[i]}'>L${i+1}</b>: start (${fmt(q.x0)}, ${fmt(q.y0)}), end (${fmt(q.x1)}, ${fmt(q.y1)})`+(q.dx?`</div><div class='eq'>&nbsp;&nbsp;m = Δx₂/Δx₁ = ${fmt(q.dy)}/${pw(q.dx)} = ${fs(q.m)}, &nbsp;c = y₀ − m·x₀ = ${pw(q.y0)} − (${fs(q.m)})·${pw(q.x0)} = ${fs(q.c)}</div><div class='eq' style='margin-bottom:8px'>&nbsp;&nbsp;${mc(q.m,q.c)}</div>`:`: vertical, so x₁ is constant and the slope is undefined</div><div class='eq' style='margin-bottom:8px'>&nbsp;&nbsp;x₁ = ${fmt(q.x0)}</div>`)});
+s+=`<div class='st'>Step 2: the equation of a neuron in the same form</div><p class='pr'>Neuron h<sub>k</sub> fires when g<sub>hk</sub> = ${sub('hk1')}x₁ + ${sub('hk2')}x₂ + ${sub('hk3')}x₃ ≥ 0, so its boundary is g<sub>hk</sub> = 0. With x₃ = 1, solving for x₂ gives</p><div class='eq'>x₂ = −(${sub('hk1')}/${sub('hk2')})·x₁ − ${sub('hk3')}/${sub('hk2')} &nbsp;⇒&nbsp; m<sub>neuron</sub> = −${sub('hk1')}/${sub('hk2')}, &nbsp;c<sub>neuron</sub> = −${sub('hk3')}/${sub('hk2')}</div><div class='st'>Step 3: compare m and c to find the hidden weights</div><p class='pr'>The neuron boundary must be the drawn line, so m<sub>neuron</sub> = m and c<sub>neuron</sub> = c. This gives ${sub('hk1')} = −m·${sub('hk2')} and ${sub('hk3')} = −c·${sub('hk2')}: two equations for three unknowns, so ${sub('hk2')} is free. Its sign selects the active side (+ above the line, − below); we pick it so that the neuron outputs 1 on the side of the class-1 points (inside the pattern). Its size only scales g, so we start from ±1 and then multiply by a positive number to clear fractions.</p>`;
+LM.forEach((q,k)=>{const w=sol.W[k],n=k+1,i=sol.idx[k],h=j=>sub('h'+n+j),v=q.dx,sg=Math.sign(v?w[1]:w[0]),Q=Math.abs(v?w[1]:w[0]),sp=sg>0?'1':'(−1)',ln=t=>`<div class='eq'>&nbsp;&nbsp;${t}</div>`;
+s+=`<div class='eq'><b style='color:${LC[i]}'>h${n}</b> from L${i+1}: ${v?mc(q.m,q.c):'x₁ = '+fmt(q.x0)}</div>`+(v?ln(`choose ${h(2)} = ${sg>0?'+1 (active above the line)':'−1 (active below the line)'}`)+ln(`${h(1)} = −m·${h(2)} = −(${fs(q.m)})·${sp} = ${fs(fr(-sg*q.m[0],q.m[1]))}`)+ln(`${h(3)} = −c·${h(2)} = −(${fs(q.c)})·${sp} = ${fs(fr(-sg*q.c[0],q.c[1]))}`)+ln(Q>1?`multiply all three by ${Q} to clear the fractions:`:'already integers:'):ln(`vertical line: ${h(2)} = 0 and the boundary is x₁ = −${h(3)}/${h(1)}`)+ln(`choose ${h(1)} = ${sg>0?'+1 (active right of the line)':'−1 (active left of the line)'}`)+ln(`${h(3)} = −(${fmt(q.x0)})·${h(1)} = ${fmt(-q.x0*sg+0)}`)+ln(Q>1?`multiply both by ${Q} to clear the fractions:`:'already integers:'))+`<div class='eq' style='margin-bottom:8px'>&nbsp;&nbsp;(${h(1)}, ${h(2)}, ${h(3)}) = (${w.map(fmt).join(', ')})</div>`});
+if(m==1){s+=`<div class='st'>Step 4: check the points</div><p class='pr'>The only weights are ${sub('h11')}, ${sub('h12')}, ${sub('h13')}, and y = f(g<sub>h1</sub>) is already the network output (t = target class).</p><table>${th(['point','(x₁, x₂)','g<sub>h1</sub> = '+sub('h11')+'x₁ + '+sub('h12')+'x₂ + '+sub('h13')+'·1','y = f(g)','t'])}${P.map((p,i)=>{const w=sol.W[0],r=gnet(p.x,p.y,sol);return td(['<b>'+lab(i)+'</b>','('+fmt(p.x)+', '+fmt(p.y)+')',pw(w[0])+'·'+pw(p.x)+' + '+pw(w[1])+'·'+pw(p.y)+' + '+pw(w[2])+'·1 = <b>'+fmt(r.gh[0])+'</b>',r.y+(r.y==p.c?' ✓':' ✗'),p.c])}).join('')}</table>`;d.innerHTML=s;return}
+const grp={};P.forEach((p,i)=>{const k=net(p.x,p.y)[0].join('');(grp[k]=grp[k]||[]).push(lab(i))});
+s+=`<div class='st'>Step 4: hidden outputs of every point</div><p class='pr'>Evaluate y<sub>k</sub> = f(g<sub>hk</sub>) for each point. Points with the same code look identical to the output neuron, so this is the truth table s1 must reproduce (t = target class).</p><table>${th([...Y,'points','t'])}${sol.E.map(([c,t])=>td([...c,grp[c.join('')].join(' '),'<b>'+t+'</b>'])).join('')}</table>`;
+s+=`<div class='st'>Step 5: conditions on the output weights</div><p class='pr'>g<sub>s1</sub> = ${Y.map((y,j)=>sub('s1'+(j+1))+y).join(' + ')} + ${sub('s1'+(m+1))}·1 must be ≥ 0 when t = 1 and &lt; 0 when t = 0. Only inputs equal to 1 contribute:</p>`+sol.E.map(([c,t])=>`<div class='eq'>(${c.join(', ')}): ${[...c.map((v,j)=>v?sub('s1'+(j+1)):''),sub('s1'+(m+1))].filter(Boolean).join(' + ')} ${t?'≥':'&lt;'} 0</div>`).join('');
+s+=`<div class='st'>Step 6: pick the output weights and check them</div><p class='pr'>Trying integer weights in order of increasing total Σ|ω| (so the first one that works is the smallest) gives ${sol.S.map((v,j)=>sub('s1'+(j+1))+' = <b>'+fmt(v)+'</b>').join(', ')}. Substituting each code:</p><table>${th([...Y,'g<sub>s1</sub>','y = f(g)','t'])}${sol.E.map(([c,t])=>{const g=sol.S[m]+c.reduce((a,v,j)=>a+v*sol.S[j],0);return td([...c,[...c.map((v,j)=>pw(sol.S[j])+'·'+v),pw(sol.S[m])+'·1'].join(' + ')+' = <b>'+fmt(g)+'</b>',H(g)+(H(g)==t?' ✓':' ✗'),t])}).join('')}</table><p class='pr'>Rule of thumb: an AND of m neurons uses weights 1 and bias −m; an OR uses weights 1 and bias −1.</p>`;
+d.innerHTML=s}
+function update(){solve();draw();drawNet();render();derive();uCheck()}
+const TL=[['line','／ Line'],['p1','● Point (class 1)'],['p0','○ Point (class 0)'],['move','✥ Move / flip'],['del','✕ Delete']];
+$('tools').innerHTML=TL.map(([k,t])=>`<button data-t="${k}" class="${k==tool?'on':''}">${t}</button>`).join('')+'<label style="display:flex;align-items:center;gap:5px;color:var(--mut)">Snap <select id="snp"><option value="1">1</option><option value="0.5" selected>0.5</option><option value="0.1">0.1</option></select></label><button id="clr">Clear</button><button data-pre="Half-plane">Example: half-plane</button><button data-pre="Band">Example: band</button><button data-pre="Triangle">Example: triangle</button>';
+const PRE={'Half-plane':{l:[[-5,0,5,2]],p:[[0,3,1],[-3,4,1],[3,5,1],[0,-3,0],[-3,-2,0],[4,-1,0]],t:'Class 1 above the line, class 0 below it.'},
+'Band':{l:[[-3,-6,-3,6],[3,6,3,-6]],p:[[0,0,1],[1,4,1],[-2,-3,1],[-5,2,0],[5,-2,0],[-4,-4,0],[4.5,5,0]],t:'Class 1 only between the two vertical lines.'},
+'Triangle':{l:[[-4,-3,4,-3],[4,-3,0,4],[0,4,-4,-3]],p:[[0,0,1],[1,-1,1],[-1,1,1],[3,3,0],[-4,2,0],[0,-5,0],[5,-2,0]],t:'Class 1 only inside the triangle, class 0 everywhere else.'}};
+$('tools').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.t){tool=b.dataset.t;document.querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('on',x==b))}
+ else if(b.id=='clr'){L=[];P=[];if(Object.values(PRE).some(d=>d.t===$('obj').value))$('obj').value='';UW.show=0;$('ushow').checked=false;tip=null;update()}
+ else if(b.dataset.pre){const d=PRE[b.dataset.pre];L=d.l.map(a=>({p:[[a[0],a[1]],[a[2],a[3]]]}));P=d.p.map(a=>({x:a[0],y:a[1],c:a[2]}));$('obj').value=d.t;update()}};
+function pos(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*PX/r.width,(e.clientY-r.top)*PX/r.height]}
+function hit(px,py,ln){for(let i=P.length;i--;){const[a,b]=toPx(P[i].x,P[i].y);if(Math.hypot(a-px,b-py)<14)return{t:'p',i}}
+ for(let i=L.length;i--;)for(let j=0;j<2;j++){const[a,b]=toPx(...L[i].p[j]);if(Math.hypot(a-px,b-py)<12)return{t:'h',i,j}}
+ if(ln)for(let i=L.length;i--;){const[a,b]=toPx(...L[i].p[0]),[c,d]=toPx(...L[i].p[1]);if(Math.abs((c-a)*(py-b)-(d-b)*(px-a))/Math.hypot(c-a,d-b)<7)return{t:'l',i}}
+ return null}
+const rm=h=>{h.t=='p'?P.splice(h.i,1):L.splice(h.i,1)};
+cv.onpointerdown=e=>{if(e.button)return;e.preventDefault();cv.setPointerCapture(e.pointerId);const[px,py]=pos(e),[x,y]=toW(px,py),h=hit(px,py,tool=='del');
+ if(tool=='line'){if(L.length>=5)return;const q=[snap(x),snap(y)];L.push({p:[q,[...q]]});drag={t:'new',i:L.length-1}}
+ else if(tool=='move'){if(h)drag={...h,moved:0}}
+ else if(tool=='del'){if(h)rm(h)}
+ else if(P.length<26)P.push({x:r1(cl(x)),y:r1(cl(y)),c:+(tool=='p1')});update()};
+cv.onpointermove=e=>{const[px,py]=pos(e),[x,y]=toW(px,py),q=[snap(x),snap(y)];if(!drag){tipSet(px,py,x,y,hit(px,py,tool!='line'));draw();return}
+ if(drag.t=='new')L[drag.i].p[1]=q;
+ else if(drag.t=='h'){const o=L[drag.i].p[1-drag.j];if(q[0]!=o[0]||q[1]!=o[1]){L[drag.i].p[drag.j]=q;drag.moved=1}}
+ else{Object.assign(P[drag.i],{x:r1(cl(x)),y:r1(cl(y))});drag.moved=1}tipSet(px,py,x,y);update()};
+cv.onpointerup=()=>{if(!drag)return;const d=drag;drag=null;
+ if(d.t=='new'){const p=L[d.i].p;if(p[0][0]==p[1][0]&&p[0][1]==p[1][1])L.splice(d.i,1)}
+ if(d.t=='p'&&!d.moved)P[d.i].c^=1;update()};
+$('snp').onchange=e=>{stp=+e.target.value};
+cv.onpointerleave=()=>{if(!drag){tip=null;draw()}};
+cv.oncontextmenu=e=>{e.preventDefault();const h=hit(...pos(e),1);if(h){rm(h);update()}};
+$('obj').oninput=()=>$('goal').textContent='Objective: '+($('obj').value.trim()||'(not described yet)');
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',update);
+uInit();
+document.querySelector('[data-pre="Triangle"]').click();
+</script><script src="../assets/labs.js"></script>
+<script src="../assets/lab-nav.js"></script>
+</body></html>
