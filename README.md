@@ -15,9 +15,13 @@ Sister site: [Learning Control Can be Fun](https://mouraoliveira.github.io/Learn
 | 3 | Perceptron Lab | Intermediate | Neural networks |
 | 4 | Backpropagation, one step at a time | Intermediate | Neural networks |
 | 5 | K-means Lab | Introductory | Machine learning |
-| 6 | Particle Swarm Optimization Explorer | Intermediate | Optimization |
+| 6 | Simulated Annealing Lab | Introductory | Optimization |
+| 7 | Genetic Algorithm Lab | Introductory | Optimization |
+| 8 | Particle Swarm Optimization Explorer | Intermediate | Optimization |
 
 The order is the suggested learning order. It is also the order of the cards and of the Prev/Next buttons.
+
+Why this order: labs 1 to 4 build up the neuron, from a single unit to a trained network. Lab 5 steps away from neurons to learning from unlabelled data. Labs 6 to 8 are three search methods that grow in complexity. Annealing follows one walker, the genetic algorithm evolves a whole population with selection, crossover and mutation, and particle swarm optimization gives every member of the population a velocity and a memory.
 
 ## What is in the folder
 
@@ -74,7 +78,7 @@ That is all. The card, the search, the level and topic filters, the lab count in
 
 ### Thumbnails
 
-`preview` picks one of the drawings in `assets/app.js` (object `PV`): `neuron`, `gates`, `regions`, `backprop`, `clusters`, `swarm`. Any other value shows a neutral placeholder. To draw a new one, add a function to `PV` that returns an SVG with a 240 × 120 viewBox, using the colour variables `--a`, `--b`, `--c`, `--d`, `--ink`, `--mute` and `--card` so it works in light and dark mode.
+`preview` picks one of the drawings in `assets/app.js` (object `PV`): `neuron`, `gates`, `regions`, `backprop`, `clusters`, `anneal`, `genetic`, `swarm`. Any other value shows a neutral placeholder. To draw a new one, add a function to `PV` that returns an SVG with a 240 × 120 viewBox, using the colour variables `--a`, `--b`, `--c`, `--d`, `--ink`, `--mute` and `--card` so it works in light and dark mode.
 
 ### The floating navigation
 
