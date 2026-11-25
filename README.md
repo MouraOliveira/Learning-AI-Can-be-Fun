@@ -10,18 +10,18 @@ Sister site: [Learning Control Can be Fun](https://mouraoliveira.github.io/Learn
 
 | # | Lab | Level | Topic |
 |---|-----|-------|-------|
-| 1 | From Brain Cells to Artificial Neurons | Introductory | Neural networks |
-| 2 | Neuron Lab (McCulloch–Pitts and Perceptron) | Introductory | Neural networks |
-| 3 | Perceptron Lab | Intermediate | Neural networks |
-| 4 | Backpropagation, one step at a time | Intermediate | Neural networks |
-| 5 | K-means Lab | Introductory | Machine learning |
-| 6 | Simulated Annealing Lab | Introductory | Optimization |
-| 7 | Genetic Algorithm Lab | Introductory | Optimization |
-| 8 | Particle Swarm Optimization Explorer | Intermediate | Optimization |
+| 1 | Simulated Annealing Lab | Introductory | Optimization |
+| 2 | Genetic Algorithm Lab | Introductory | Optimization |
+| 3 | Particle Swarm Optimization Explorer | Intermediate | Optimization |
+| 4 | From Brain Cells to Artificial Neurons | Introductory | Neural networks |
+| 5 | Neuron Lab (McCulloch–Pitts and Perceptron) | Introductory | Neural networks |
+| 6 | Perceptron Lab | Intermediate | Neural networks |
+| 7 | Backpropagation, one step at a time | Intermediate | Neural networks |
+| 8 | K-means Lab | Introductory | Machine learning |
 
-The order is the suggested learning order. It is also the order of the cards and of the Prev/Next buttons.
+The order is the suggested learning order. It is also the order of the cards and of the Prev/Next buttons. To change it, move the entries in `assets/labs.js`; nothing else needs editing.
 
-Why this order: labs 1 to 4 build up the neuron, from a single unit to a trained network. Lab 5 steps away from neurons to learning from unlabelled data. Labs 6 to 8 are three search methods that grow in complexity. Annealing follows one walker, the genetic algorithm evolves a whole population with selection, crossover and mutation, and particle swarm optimization gives every member of the population a velocity and a memory.
+The course opens with three search methods that grow in complexity: annealing follows one walker, the genetic algorithm evolves a whole population with selection, crossover and mutation, and particle swarm optimization gives every member of the population a velocity and a memory. Labs 4 to 7 then build up the neuron, from a single unit to a trained network, and lab 8 closes with learning from unlabelled data.
 
 ## What is in the folder
 
