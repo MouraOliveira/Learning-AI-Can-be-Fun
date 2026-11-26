@@ -1,10 +1,10 @@
-# Learning AI Can be Fun (LIACbF)
+# Learning AI Can be Fun (LAICbF)
 
 Interactive virtual laboratories for artificial intelligence, by **Paulo Moura Oliveira**.
 
 A static website: no build step, no server, no dependencies. Open `index.html` directly, or upload the folder to any web host (GitHub Pages, Netlify, Cloudflare Pages, a university server). The homepage and the labs follow the visitor's light or dark system setting.
 
-Sister site: [Learning Control Can be Fun](https://mouraoliveira.github.io/Learning-Control-Can-be-Fun/) (feedback control systems). LIACbF uses the same structure.
+Sister site: [Learning Control Can be Fun](https://mouraoliveira.github.io/Learning-Control-Can-be-Fun/) (feedback control systems). LAICbF uses the same structure.
 
 ## Laboratories
 

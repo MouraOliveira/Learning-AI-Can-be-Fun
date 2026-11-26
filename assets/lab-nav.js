@@ -1,5 +1,5 @@
 /*
- * Learning AI Can be Fun (LIACbF): floating Home / Prev / Next navigation for labs
+ * Learning AI Can be Fun (LAICbF): floating Home / Prev / Next navigation for labs
  * ---------------------------------------------------------------------------------
  * Add these two lines just before </body> in every lab (note the ../):
  *
@@ -73,7 +73,7 @@
     '@media print{.bar{display:none}}';
 
   var host = document.createElement('div');
-  host.id = 'liacbf-nav';
+  host.id = 'laicbf-nav';
   var sh = host.attachShadow ? host.attachShadow({ mode: 'open' }) : host;
 
   var posTxt = at >= 0 ? '<span class="pos" aria-hidden="true">' + (at + 1) + ' / ' + labs.length + '</span>' : '';
@@ -81,7 +81,7 @@
     '<nav class="bar" aria-label="Laboratory navigation">' +
       '<span class="full">' +
         step(prev, 'prev') +
-        '<a href="' + esc(url('index.html')) + '" title="All laboratories" aria-label="LIACbF home: all laboratories">' + I.home + '<span class="lbl">Home</span></a>' +
+        '<a href="' + esc(url('index.html')) + '" title="All laboratories" aria-label="LAICbF home: all laboratories">' + I.home + '<span class="lbl">Home</span></a>' +
         posTxt +
         step(next, 'next') +
         '<span class="sep" aria-hidden="true"></span>' +
@@ -96,12 +96,12 @@
     tog.setAttribute('aria-label', min ? 'Show lab navigation' : 'Hide lab navigation');
     tog.title = min ? 'Show lab navigation' : 'Hide lab navigation';
     tog.innerHTML = min ? I.menu : I.close;
-    if (save) { try { sessionStorage.setItem('liacbf-nav-min', min ? '1' : '0'); } catch (e) {} }
+    if (save) { try { sessionStorage.setItem('laicbf-nav-min', min ? '1' : '0'); } catch (e) {} }
   }
   tog.addEventListener('click', function () { setMin(!bar.classList.contains('min'), true); });
   /* keystrokes on the nav must not trigger a lab's own keyboard shortcuts (Space, S, R, arrows...) */
   sh.addEventListener('keydown', function (e) { e.stopPropagation(); });
-  try { if (sessionStorage.getItem('liacbf-nav-min') === '1') setMin(true, false); } catch (e) {}
+  try { if (sessionStorage.getItem('laicbf-nav-min') === '1') setMin(true, false); } catch (e) {}
 
   function mount() { document.body.appendChild(host); }
   if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);

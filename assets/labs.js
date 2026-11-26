@@ -1,5 +1,5 @@
 /*
- * Learning AI Can be Fun (LIACbF): laboratory registry
+ * Learning AI Can be Fun (LAICbF): laboratory registry
  * -----------------------------------------------------
  * This is the ONLY file you edit to add a laboratory.
  * The homepage cards, filters, search and the Prev/Next buttons inside each lab
@@ -19,6 +19,51 @@
  *               sentences that complete "You will learn to:"
  */
 window.LABS = [
+  {
+    id: 'simulated-annealing',
+    title: 'Simulated Annealing Lab',
+    file: 'labs/simulated-annealing-lab.html',
+    level: 'Introductory',
+    topic: 'Optimization',
+    preview: 'anneal',
+    tags: ['Local search', 'Cooling schedule', 'Travelling salesperson'],
+    summary: 'Send a walker across a bumpy landscape and watch it sometimes accept a worse move, with a chance set by the temperature. Compare it with hill climbing, change the cooling schedule and shorten a travelling salesperson tour.',
+    objectives: [
+      'Explain why hill climbing gets stuck in a local minimum, and compute the chance of accepting a worse move.',
+      'Predict how the temperature and the cooling schedule turn the search from a random walk into hill climbing.',
+      'Judge a randomised algorithm from many trials, on a landscape and on a travelling salesperson tour.'
+    ]
+  },
+  {
+    id: 'genetic-algorithm',
+    title: 'Genetic Algorithm Lab',
+    file: 'labs/genetic-algorithm-lab.html',
+    level: 'Introductory',
+    topic: 'Optimization',
+    preview: 'genetic',
+    tags: ['Evolutionary computation', 'Selection and crossover', 'Mutation'],
+    summary: 'Encode solutions as bit strings, then try selection, crossover and mutation one at a time before running a complete genetic algorithm and watching the best and average fitness climb.',
+    objectives: [
+      'Decode a bit-string chromosome and compute its fitness.',
+      'Compare roulette-wheel and tournament selection, and one-point, two-point and uniform crossover.',
+      'Explain what mutation, elitism and population size do in a full run of the algorithm.'
+    ]
+  },
+  {
+    id: 'pso',
+    title: 'Particle Swarm Optimization Explorer',
+    file: 'labs/pso-explorer.html',
+    level: 'Intermediate',
+    topic: 'Optimization',
+    preview: 'swarm',
+    tags: ['Swarm intelligence', 'Metaheuristics', 'Global search'],
+    summary: 'Release a swarm on landscapes from a single valley to the very bumpy Rastrigin function, and watch inertia, personal memory and social pull decide where it settles.',
+    objectives: [
+      'Explain the update rule as the sum of an inertia, a cognitive and a social pull.',
+      'Tune w, c₁ and c₂ and observe the balance between exploration and convergence.',
+      'Recognise premature convergence on a local minimum and what causes it.'
+    ]
+  },
   {
     id: 'artificial-neurons',
     title: 'From Brain Cells to Artificial Neurons',
@@ -92,51 +137,6 @@ window.LABS = [
       'Predict where a centroid moves in the Move step and explain why.',
       'Show that the starting centroids change the result, and keep the run with the lowest inertia.',
       'Choose k from the inertia-versus-k curve and name the data shapes where k-means fails.'
-    ]
-  },
-  {
-    id: 'simulated-annealing',
-    title: 'Simulated Annealing Lab',
-    file: 'labs/simulated-annealing-lab.html',
-    level: 'Introductory',
-    topic: 'Optimization',
-    preview: 'anneal',
-    tags: ['Local search', 'Cooling schedule', 'Travelling salesperson'],
-    summary: 'Send a walker across a bumpy landscape and watch it sometimes accept a worse move, with a chance set by the temperature. Compare it with hill climbing, change the cooling schedule and shorten a travelling salesperson tour.',
-    objectives: [
-      'Explain why hill climbing gets stuck in a local minimum, and compute the chance of accepting a worse move.',
-      'Predict how the temperature and the cooling schedule turn the search from a random walk into hill climbing.',
-      'Judge a randomised algorithm from many trials, on a landscape and on a travelling salesperson tour.'
-    ]
-  },
-  {
-    id: 'genetic-algorithm',
-    title: 'Genetic Algorithm Lab',
-    file: 'labs/genetic-algorithm-lab.html',
-    level: 'Introductory',
-    topic: 'Optimization',
-    preview: 'genetic',
-    tags: ['Evolutionary computation', 'Selection and crossover', 'Mutation'],
-    summary: 'Encode solutions as bit strings, then try selection, crossover and mutation one at a time before running a complete genetic algorithm and watching the best and average fitness climb.',
-    objectives: [
-      'Decode a bit-string chromosome and compute its fitness.',
-      'Compare roulette-wheel and tournament selection, and one-point, two-point and uniform crossover.',
-      'Explain what mutation, elitism and population size do in a full run of the algorithm.'
-    ]
-  },
-  {
-    id: 'pso',
-    title: 'Particle Swarm Optimization Explorer',
-    file: 'labs/pso-explorer.html',
-    level: 'Intermediate',
-    topic: 'Optimization',
-    preview: 'swarm',
-    tags: ['Swarm intelligence', 'Metaheuristics', 'Global search'],
-    summary: 'Release a swarm on landscapes from a single valley to the very bumpy Rastrigin function, and watch inertia, personal memory and social pull decide where it settles.',
-    objectives: [
-      'Explain the update rule as the sum of an inertia, a cognitive and a social pull.',
-      'Tune w, c₁ and c₂ and observe the balance between exploration and convergence.',
-      'Recognise premature convergence on a local minimum and what causes it.'
     ]
   }
 ];

@@ -1,4 +1,4 @@
-/* Learning AI Can be Fun (LIACbF): homepage logic.
+/* Learning AI Can be Fun (LAICbF): homepage logic.
  * Reads window.LABS (assets/labs.js) and builds the lab cards, search, filters and the hero demo.
  * No dependencies, no build step. */
 (function () {
